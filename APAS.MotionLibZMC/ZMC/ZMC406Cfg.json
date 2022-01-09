@@ -1,0 +1,81 @@
+{
+	"Scope": {
+		"InvtervalMs": 10,
+		"mmInvtervalMs": "采样时间间隔，单位ms",
+		"Deepth": 10000,
+		"mmDeepth1": "Deepth为采样深度，该值仅用于约束最大采样点数，实际的采样点数与速度和运动距离相关",
+		"mmDeepth2": "Fast1D算法中实际需要的缓冲区数量为Deepth*2或Deepth*3个，因此该值不应超过 轴卡最大缓冲区长度/3"
+	},
+		"AIN": {
+			"IndexStart": 32,
+			"MaxChannel": 4,
+			"Param":
+			[
+				{
+					"Channel": 0,
+					"RangeUpperMv": 5,
+					"RangeLowMv": 0,
+					"MaxScale":65535
+				},
+				{
+					"Channel": 1,
+					"RangeUpperMv": 5,
+					"RangeLowMv": 0,
+					"MaxScale":65535
+				},
+				{
+					"Channel": 2,
+					"RangeUpperMv": 5,
+					"RangeLowMv": 0,
+					"MaxScale":65535
+				},
+				{
+					"Channel": 3,
+					"RangeUpperMv": 5,
+					"RangeLowMv": 0,
+					"MaxScale":65535
+				}
+			]
+		},
+		"Axes": [
+			{
+				"Index": 0,
+				"Units": 1,
+				"Type": 4,
+				"mmType": "AType: 1 for stepper, 4 for servo motor with ENC feedback.",
+				"InvertStep":0,
+				"ResetIo": 0,
+				"Home": {
+					"Mode": 16,
+					"NelIo": 0,
+					"NelIoInv": false,
+					"OrgIo": 0,
+					"OrgIoInv": true,
+					"PelIo": 1,
+					"PelIoInv": false,
+					"Acc": 1000000,
+					"Dec": 1000000
+				}
+			},
+			{
+				"Index": 1,
+				"Units": 1,
+				"Type": 7,
+				"mmType": "AType: 1 for stepper, 4 for servo motor with ENC feedback.",
+				"InvertStep":6,
+				"ResetIo": 0,
+				"Home": {
+					"Mode": 16,
+					"mmMode":"步进驱动器只能用14，因为其Z相信号输出为单端模式。",
+					"NelIo": 2,
+					"NelIoInv": false,
+					"OrgIo": 2,
+					"OrgIoInv":  false,
+					"PelIo": 3,
+					"PelIoInv": false,
+					"Acc": 1000000,
+					"Dec": 1000000
+				}
+			}
+		]
+	}

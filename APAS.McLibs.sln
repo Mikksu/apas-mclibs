@@ -1,0 +1,49 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.32014.148
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "APAS.MotionLib.ZMC", "APAS.MotionLibZMC\ZMC\APAS.MotionLib.ZMC.csproj", "{2E715D2B-8081-4D89-88BE-1FD572E1577B}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "APAS.MotionLib.GTS800", "APAS.MotionLib.GTS800\GTS800\APAS.MotionLib.GTS800.csproj", "{510C7738-F760-437E-95F2-AFCD1570F1C7}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "APAS.McLib.Virtual", "APAS.McLib.Virtual\APAS.McLib.Virtual.csproj", "{A4787B22-4A35-4771-815C-F8D1AAFC8B95}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "APAS.McLib.Irixi", "APAS.McLib.Irixi\M12\APAS.McLib.Irixi.csproj", "{927E66A7-1292-4C81-9EF4-441B98FBFB0E}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "APAS.McLib.Aerotech", "APAS.McLib.Aerotech\AeroTech\APAS.McLib.Aerotech.csproj", "{AE44027F-CE64-40C2-B055-6AD46FDD8A18}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{2E715D2B-8081-4D89-88BE-1FD572E1577B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2E715D2B-8081-4D89-88BE-1FD572E1577B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2E715D2B-8081-4D89-88BE-1FD572E1577B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2E715D2B-8081-4D89-88BE-1FD572E1577B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{510C7738-F760-437E-95F2-AFCD1570F1C7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{510C7738-F760-437E-95F2-AFCD1570F1C7}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{510C7738-F760-437E-95F2-AFCD1570F1C7}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{510C7738-F760-437E-95F2-AFCD1570F1C7}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A4787B22-4A35-4771-815C-F8D1AAFC8B95}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A4787B22-4A35-4771-815C-F8D1AAFC8B95}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A4787B22-4A35-4771-815C-F8D1AAFC8B95}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A4787B22-4A35-4771-815C-F8D1AAFC8B95}.Release|Any CPU.Build.0 = Release|Any CPU
+		{927E66A7-1292-4C81-9EF4-441B98FBFB0E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{927E66A7-1292-4C81-9EF4-441B98FBFB0E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{927E66A7-1292-4C81-9EF4-441B98FBFB0E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{927E66A7-1292-4C81-9EF4-441B98FBFB0E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{AE44027F-CE64-40C2-B055-6AD46FDD8A18}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{AE44027F-CE64-40C2-B055-6AD46FDD8A18}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{AE44027F-CE64-40C2-B055-6AD46FDD8A18}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{AE44027F-CE64-40C2-B055-6AD46FDD8A18}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {517997EC-3437-4440-920E-FE0F0C168B59}
+	EndGlobalSection
+EndGlobal
