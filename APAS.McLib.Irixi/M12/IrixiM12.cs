@@ -12,6 +12,7 @@ using M12.Exceptions;
 using Point2D = APAS.McLib.Sdk.Core.Point2D;
 using Point3D = APAS.McLib.Sdk.Core.Point3D;
 using Point2DM12 = M12.Base.Point2D;
+using System.Threading.Tasks;
 
 namespace APAS.McLib.Irixi
 {
@@ -137,6 +138,8 @@ namespace APAS.McLib.Irixi
 
             FwVersion = info.FirmwareVersion;
             AxisCount = info.MaxUnit;
+
+            StartBackgroundTask();
         }
 
         protected override void ChildHome(int axis, double hiSpeed, double creepSpeed)
@@ -433,6 +436,26 @@ namespace APAS.McLib.Irixi
 
         #region Private Methods
 
+        private void StartBackgroundTask()
+        {
+            Task.Run(() =>
+            {
+                while (true)
+                {
+                    try
+                    {
+                        ChildUpdateStatus();
+                    }
+                    catch (Exception)
+                    {
+                        // ignored
+                    }
+
+                    Thread.Sleep(100);
+                }
+            });
+        }
+
         private static int UnitIdToAxisIndex(UnitID unitId)
         {
             return (int) unitId;
@@ -474,6 +497,21 @@ namespace APAS.McLib.Irixi
                     throw new ArgumentOutOfRangeException(nameof(channel),
                         @"the range of the analog input ports of the M12 is 0 to 7.");
             }
+        }
+
+        #endregion
+
+        #region UnitTeste
+
+        public void UtMotion()
+        {
+            Init();
+
+            Thread.Sleep(5000);
+
+            Home(1, 100, 5);
+
+            Move(1, 100, 100000);
         }
 
         #endregion
