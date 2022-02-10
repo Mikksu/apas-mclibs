@@ -63,7 +63,6 @@
     <Compile Include="Zmcaux.cs" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="app.config" />
     <None Include="packages.config" />
     <None Include="ZMC406Cfg.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
