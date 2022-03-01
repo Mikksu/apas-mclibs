@@ -4,6 +4,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using APAS.McLib.Sdk;
 using APAS.McLib.Sdk.Core;
+using APAS.McLib.Sdk.Exceptions;
 using log4net;
 
 
@@ -137,7 +138,7 @@ namespace APAS.McLib.Virtual
                 Thread.Sleep(10);
 
                 if (isStopRequested)
-                    break;
+                    throw new StoppedByUserException();
             }
 
             _fakeAbsPosition[axis] = 0;
@@ -178,7 +179,7 @@ namespace APAS.McLib.Virtual
                 }
 
                 if (isStopRequested)
-                    break;
+                    throw new StoppedByUserException();
 
                 Thread.Sleep(10);
             }
@@ -230,7 +231,7 @@ namespace APAS.McLib.Virtual
                     Thread.Sleep(10);
 
                     if (ct.IsCancellationRequested)
-                        break;
+                        throw new StoppedByUserException();
                 }
             }, ct);
         }
