@@ -13,9 +13,9 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "APAS.McLib.Irixi", "APAS.Mc
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "APAS.McLib.Aerotech", "APAS.McLib.Aerotech\AeroTech\APAS.McLib.Aerotech.csproj", "{AE44027F-CE64-40C2-B055-6AD46FDD8A18}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "APAS.McLib.IrixiTests", "APAS.McLib.Irixi\APAS.McLib.IrixiTests\APAS.McLib.IrixiTests.csproj", "{7E9C022F-798C-4DC6-B1B8-186C353EA6BC}"
-EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "APAS.MotionLib.ACS", "APAS.MotionLib.ACS\ACS\APAS.MotionLib.ACS.csproj", "{C6AB0173-E6CB-401D-A6FA-34F9FE66059F}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "APAS.MotionLib.ZMC.ConfigurationEditor", "APAS.MotionLib.ZMC.ConfigurationEditor\APAS.MotionLib.ZMC.ConfigurationEditor.csproj", "{EC5DD133-CB18-43F2-8FBF-2CA25C530B2F}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -43,14 +43,14 @@ Global
 		{AE44027F-CE64-40C2-B055-6AD46FDD8A18}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{AE44027F-CE64-40C2-B055-6AD46FDD8A18}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{AE44027F-CE64-40C2-B055-6AD46FDD8A18}.Release|Any CPU.Build.0 = Release|Any CPU
-		{7E9C022F-798C-4DC6-B1B8-186C353EA6BC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{7E9C022F-798C-4DC6-B1B8-186C353EA6BC}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{7E9C022F-798C-4DC6-B1B8-186C353EA6BC}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{7E9C022F-798C-4DC6-B1B8-186C353EA6BC}.Release|Any CPU.Build.0 = Release|Any CPU
 		{C6AB0173-E6CB-401D-A6FA-34F9FE66059F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{C6AB0173-E6CB-401D-A6FA-34F9FE66059F}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{C6AB0173-E6CB-401D-A6FA-34F9FE66059F}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{C6AB0173-E6CB-401D-A6FA-34F9FE66059F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{EC5DD133-CB18-43F2-8FBF-2CA25C530B2F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{EC5DD133-CB18-43F2-8FBF-2CA25C530B2F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{EC5DD133-CB18-43F2-8FBF-2CA25C530B2F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{EC5DD133-CB18-43F2-8FBF-2CA25C530B2F}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
