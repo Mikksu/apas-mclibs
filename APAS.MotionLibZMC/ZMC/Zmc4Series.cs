@@ -946,9 +946,7 @@ namespace APAS.MotionLib.ZMC
         private void ReadParamFile(string filePath, ref McConfig cardParam)
         {
             if (!File.Exists(filePath))
-            {
-                return;
-            }
+                throw new FileNotFoundException($"unable to find the config file {filePath}");
 
             var jsonInfo = File.ReadAllText(filePath);
             try
