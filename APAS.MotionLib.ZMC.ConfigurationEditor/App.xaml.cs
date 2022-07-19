@@ -1,14 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Configuration;
-using System.Data;
-using System.Linq;
-using System.Threading.Tasks;
-using System.Windows;
-using APAS.MotionLib.ZMC.ConfigurationEditor.Core;
+﻿using System.Windows;
 using APAS.MotionLib.ZMC.ConfigurationEditor.ViewModules;
 using CommunityToolkit.Mvvm.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection;
+using MvvmDialogs;
 
 namespace APAS.MotionLib.ZMC.ConfigurationEditor
 {
@@ -21,8 +15,10 @@ namespace APAS.MotionLib.ZMC.ConfigurationEditor
         {
             base.OnStartup(e);
 
-            Ioc.Default.ConfigureServices(new ServiceCollection().AddTransient<AxisSettingsWindowViewModel>()
-                .BuildServiceProvider());
+            Ioc.Default.ConfigureServices(
+                new ServiceCollection().AddSingleton<IDialogService, DialogService>()
+                    .AddTransient<MainWindowViewModel>()
+                    .BuildServiceProvider());
         }
     }
 

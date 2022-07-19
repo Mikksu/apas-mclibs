@@ -5,9 +5,18 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:APAS.MotionLib.ZMC.ConfigurationEditor"
         xmlns:uc="clr-namespace:APAS.MotionLib.ZMC.ConfigurationEditor.Views"
+        xmlns:md="https://github.com/fantasticfiasco/mvvm-dialogs"
         mc:Ignorable="d"
-        Title="MainWindow" Height="450" Width="800">
-    <Grid>
+        Title="MainWindow" Height="450" Width="800"
+        md:DialogServiceViews.IsRegistered="True" >
+    <DockPanel LastChildFill="True">
+        <Menu DockPanel.Dock="Top">
+            <MenuItem Header="文件">
+                <MenuItem Header="导入配置" Command="{Binding ImportConfigurationFromJson}"/>
+                <MenuItem Header="导出配置" Command="{Binding ExportConfigurationToJson}"/>
+            </MenuItem>
+        </Menu>    
+
         <uc:AxisSettingsEditor/>
-    </Grid>
+    </DockPanel>
 </Window>

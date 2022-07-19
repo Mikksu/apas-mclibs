@@ -1,20 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
-using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Navigation;
-using System.Windows.Shapes;
+﻿using System.Windows;
 using APAS.MotionLib.ZMC.ConfigurationEditor.ViewModules;
 using CommunityToolkit.Mvvm.DependencyInjection;
-using Microsoft.Extensions.DependencyInjection;
 
 namespace APAS.MotionLib.ZMC.ConfigurationEditor
 {
@@ -27,7 +13,7 @@ namespace APAS.MotionLib.ZMC.ConfigurationEditor
         {
             InitializeComponent();
 
-            DataContext = Ioc.Default.GetRequiredService<AxisSettingsWindowViewModel>();
+            DataContext = Ioc.Default.GetRequiredService<MainWindowViewModel>();
         }
     }
 }
