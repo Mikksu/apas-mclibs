@@ -1,0 +1,473 @@
+{
+  "Scope": {
+    "SamplingIntervalMs": 10,
+    "mmSamplingIntervalMs": "采样时间间隔，单位ms",
+    "Depth": 10000,
+    "mmDepth1": "Depth为采样深度，该值仅用于约束最大采样点数，实际的采样点数与速度和运动距离相关",
+    "mmDepth2": "Fast1D算法中实际需要的缓冲区数量为Depth*2或Depth*3个，因此该值不应超过 轴卡最大缓冲区长度/3"
+  },
+  "AIN": {
+    "IndexStart": 32,
+    "MaxChannel": 4,
+    "Param": [
+      {
+        "Channel": 0,
+        "RangeUpperMv": 10,
+        "RangeLowMv": 0,
+        "MaxScale": 65535
+      },
+      {
+        "Channel": 1,
+        "RangeUpperMv": 10,
+        "RangeLowMv": 0,
+        "MaxScale": 65535
+      },
+      {
+        "Channel": 2,
+        "RangeUpperMv": 10,
+        "RangeLowMv": 0,
+        "MaxScale": 65535
+      },
+      {
+        "Channel": 3,
+        "RangeUpperMv": 10,
+        "RangeLowMv": 0,
+        "MaxScale": 65535
+      }
+    ]
+  },
+  "Axes": [
+    {
+      "Control": {
+        "Index": 0,
+        "Units": 1,
+        "AxisType": 7,
+        "mmType": "AType: 1 for stepper, 4 for servo motor with ENC feedback.",
+        "InvertStep": 7
+      },
+      "Io": {
+        "ResetIo": -1,
+        "ServoOn": -1,
+        "Alarm": -1,
+        "Nel": 24,
+        "InvNel": false,
+        "Org": -1,
+        "InvOrg": false,
+        "Pel": 0,
+        "InvPel": false,
+        "IsNelAsDatum": true
+      },
+      "Motion": {
+        "Acc": 3000000,
+        "Dec": 3000000,
+        "FastDec": 5000000,
+        "Speed": 50000,
+        "SRampMs": 100
+      },
+      "Home": {
+        "Mode": 14,
+        "mmMode": "步进驱动器只能用14，因为其Z相信号输出为单端模式。",
+        "Acc": 1000000,
+        "Dec": 1000000,
+        "HiSpeed": 100000,
+        "CreepSpeed": 2000
+      }
+    },
+    {
+      "Control": {
+        "Index": 1,
+        "Units": 1,
+        "AxisType": 7,
+        "mmType": "AType: 1 for stepper, 4 for servo motor with ENC feedback.",
+        "InvertStep": 7
+      },
+      "Io": {
+        "ResetIo": -1,
+        "ServoOn": -1,
+        "Alarm": -1,
+        "Nel": 25,
+        "InvNel": false,
+        "Org": -1,
+        "InvOrg": false,
+        "Pel": 1,
+        "InvPel": false,
+        "IsNelAsDatum": true
+      },
+      "Motion": {
+        "Acc": 3000000,
+        "Dec": 3000000,
+        "FastDec": 5000000,
+        "Speed": 300000,
+        "SRampMs": 100
+      },
+      "Home": {
+        "Mode": 14,
+        "mmMode": "步进驱动器只能用14，因为其Z相信号输出为单端模式。",
+        "Acc": 1000000,
+        "Dec": 1000000,
+        "HiSpeed": 100000,
+        "CreepSpeed": 2000
+      }
+    },
+    {
+      "Control": {
+        "Index": 2,
+        "Units": 1,
+        "AxisType": 7,
+        "mmType": "AType: 1 for stepper, 4 for servo motor with ENC feedback.",
+        "InvertStep": 7
+      },
+      "Io": {
+        "ResetIo": -1,
+        "ServoOn": -1,
+        "Alarm": -1,
+        "Nel": 26,
+        "InvNel": false,
+        "Org": -1,
+        "InvOrg": false,
+        "Pel": 2,
+        "InvPel": false,
+        "IsNelAsDatum": true
+      },
+      "Motion": {
+        "Acc": 3000000,
+        "Dec": 3000000,
+        "FastDec": 5000000,
+        "Speed": 300000,
+        "SRampMs": 100
+      },
+      "Home": {
+        "Mode": 14,
+        "mmMode": "步进驱动器只能用14，因为其Z相信号输出为单端模式。",
+        "Acc": 1000000,
+        "Dec": 1000000,
+        "HiSpeed": 100000,
+        "CreepSpeed": 2000
+      }
+    },
+    {
+      "Control": {
+        "Index": 3,
+        "Units": 1,
+        "AxisType": 7,
+        "mmType": "AType: 1 for stepper, 4 for servo motor with ENC feedback.",
+        "InvertStep": 7
+      },
+      "Io": {
+        "ResetIo": -1,
+        "ServoOn": -1,
+        "Alarm": -1,
+        "Nel": 27,
+        "InvNel": false,
+        "Org": -1,
+        "InvOrg": false,
+        "Pel": 2,
+        "InvPel": false,
+        "IsNelAsDatum": true
+      },
+      "Motion": {
+        "Acc": 3000000,
+        "Dec": 3000000,
+        "FastDec": 5000000,
+        "Speed": 300000,
+        "SRampMs": 100
+      },
+      "Home": {
+        "Mode": 14,
+        "mmMode": "步进驱动器只能用14，因为其Z相信号输出为单端模式。",
+        "Acc": 1000000,
+        "Dec": 1000000,
+        "HiSpeed": 100000,
+        "CreepSpeed": 2000
+      }
+    },
+    {
+      "Control": {
+        "Index": 4,
+        "Units": 1,
+        "AxisType": 7,
+        "mmType": "AType: 1 for stepper, 4 for servo motor with ENC feedback.",
+        "InvertStep": 7
+      },
+      "Io": {
+        "ResetIo": -1,
+        "ServoOn": -1,
+        "Alarm": -1,
+        "Nel": 28,
+        "InvNel": false,
+        "Org": -1,
+        "InvOrg": false,
+        "Pel": 4,
+        "InvPel": false,
+        "IsNelAsDatum": true
+      },
+      "Motion": {
+        "Acc": 3000000,
+        "Dec": 3000000,
+        "FastDec": 5000000,
+        "Speed": 300000,
+        "SRampMs": 100
+      },
+      "Home": {
+        "Mode": 14,
+        "mmMode": "步进驱动器只能用14，因为其Z相信号输出为单端模式。",
+        "Acc": 1000000,
+        "Dec": 1000000,
+        "HiSpeed": 100000,
+        "CreepSpeed": 2000
+      }
+    },
+    {
+      "Control": {
+        "Index": 5,
+        "Units": 1,
+        "AxisType": 7,
+        "mmType": "AType: 1 for stepper, 4 for servo motor with ENC feedback.",
+        "InvertStep": 7
+      },
+      "Io": {
+        "ResetIo": -1,
+        "ServoOn": -1,
+        "Alarm": -1,
+        "Nel": 29,
+        "InvNel": false,
+        "Org": -1,
+        "InvOrg": false,
+        "Pel": 5,
+        "InvPel": false,
+        "IsNelAsDatum": true
+      },
+      "Motion": {
+        "Acc": 3000000,
+        "Dec": 3000000,
+        "FastDec": 5000000,
+        "Speed": 300000,
+        "SRampMs": 100
+      },
+      "Home": {
+        "Mode": 14,
+        "mmMode": "步进驱动器只能用14，因为其Z相信号输出为单端模式。",
+        "Acc": 1000000,
+        "Dec": 1000000,
+        "HiSpeed": 100000,
+        "CreepSpeed": 2000
+      }
+    },
+    {
+      "Control": {
+        "Index": 6,
+        "Units": 1,
+        "AxisType": 7,
+        "mmType": "AType: 1 for stepper, 4 for servo motor with ENC feedback.",
+        "InvertStep": 7
+      },
+      "Io": {
+        "ResetIo": -1,
+        "ServoOn": -1,
+        "Alarm": -1,
+        "Nel": 30,
+        "InvNel": false,
+        "Org": -1,
+        "InvOrg": false,
+        "Pel": 6,
+        "InvPel": false,
+        "IsNelAsDatum": true
+      },
+      "Motion": {
+        "Acc": 3000000,
+        "Dec": 3000000,
+        "FastDec": 5000000,
+        "Speed": 300000,
+        "SRampMs": 100
+      },
+      "Home": {
+        "Mode": 14,
+        "mmMode": "步进驱动器只能用14，因为其Z相信号输出为单端模式。",
+        "Acc": 1000000,
+        "Dec": 1000000,
+        "HiSpeed": 100000,
+        "CreepSpeed": 2000
+      }
+    },
+    {
+      "Control": {
+        "Index": 7,
+        "Units": 1,
+        "AxisType": 7,
+        "mmType": "AType: 1 for stepper, 4 for servo motor with ENC feedback.",
+        "InvertStep": 7
+      },
+      "Io": {
+        "ResetIo": -1,
+        "ServoOn": -1,
+        "Alarm": -1,
+        "Nel": 31,
+        "InvNel": false,
+        "Org": -1,
+        "InvOrg": false,
+        "Pel": 7,
+        "InvPel": false,
+        "IsNelAsDatum": true
+      },
+      "Motion": {
+        "Acc": 3000000,
+        "Dec": 3000000,
+        "FastDec": 5000000,
+        "Speed": 300000,
+        "SRampMs": 100
+      },
+      "Home": {
+        "Mode": 14,
+        "mmMode": "步进驱动器只能用14，因为其Z相信号输出为单端模式。",
+        "Acc": 1000000,
+        "Dec": 1000000,
+        "HiSpeed": 100000,
+        "CreepSpeed": 2000
+      }
+    },
+    {
+      "Control": {
+        "Index": 8,
+        "Units": 1,
+        "AxisType": 7,
+        "mmType": "AType: 1 for stepper, 4 for servo motor with ENC feedback.",
+        "InvertStep": 7
+      },
+      "Io": {
+        "ResetIo": -1,
+        "ServoOn": -1,
+        "Alarm": -1,
+        "Nel": 32,
+        "InvNel": false,
+        "Org": -1,
+        "InvOrg": false,
+        "Pel": 8,
+        "InvPel": false,
+        "IsNelAsDatum": true
+      },
+      "Motion": {
+        "Acc": 3000000,
+        "Dec": 3000000,
+        "FastDec": 5000000,
+        "Speed": 300000,
+        "SRampMs": 100
+      },
+      "Home": {
+        "Mode": 14,
+        "mmMode": "步进驱动器只能用14，因为其Z相信号输出为单端模式。",
+        "Acc": 1000000,
+        "Dec": 1000000,
+        "HiSpeed": 100000,
+        "CreepSpeed": 2000
+      }
+    },
+    {
+      "Control": {
+        "Index": 9,
+        "Units": 1,
+        "AxisType": 7,
+        "mmType": "AType: 1 for stepper, 4 for servo motor with ENC feedback.",
+        "InvertStep": 7
+      },
+      "Io": {
+        "ResetIo": -1,
+        "ServoOn": -1,
+        "Alarm": -1,
+        "Nel": 33,
+        "InvNel": false,
+        "Org": -1,
+        "InvOrg": false,
+        "Pel": 9,
+        "InvPel": false,
+        "IsNelAsDatum": true
+      },
+      "Motion": {
+        "Acc": 3000000,
+        "Dec": 3000000,
+        "FastDec": 5000000,
+        "Speed": 300000,
+        "SRampMs": 100
+      },
+      "Home": {
+        "Mode": 14,
+        "mmMode": "步进驱动器只能用14，因为其Z相信号输出为单端模式。",
+        "Acc": 1000000,
+        "Dec": 1000000,
+        "HiSpeed": 100000,
+        "CreepSpeed": 2000
+      }
+    },
+    {
+      "Control": {
+        "Index": 10,
+        "Units": 1,
+        "AxisType": 7,
+        "mmType": "AType: 1 for stepper, 4 for servo motor with ENC feedback.",
+        "InvertStep": 7
+      },
+      "Io": {
+        "ResetIo": -1,
+        "ServoOn": -1,
+        "Alarm": -1,
+        "Nel": 34,
+        "InvNel": false,
+        "Org": -1,
+        "InvOrg": false,
+        "Pel": 10,
+        "InvPel": false,
+        "IsNelAsDatum": true
+      },
+      "Motion": {
+        "Acc": 3000000,
+        "Dec": 3000000,
+        "FastDec": 5000000,
+        "Speed": 300000,
+        "SRampMs": 100
+      },
+      "Home": {
+        "Mode": 14,
+        "mmMode": "步进驱动器只能用14，因为其Z相信号输出为单端模式。",
+        "Acc": 1000000,
+        "Dec": 1000000,
+        "HiSpeed": 100000,
+        "CreepSpeed": 2000
+      }
+    },
+    {
+      "Control": {
+        "Index": 11,
+        "Units": 1,
+        "AxisType": 7,
+        "mmType": "AType: 1 for stepper, 4 for servo motor with ENC feedback.",
+        "InvertStep": 7
+      },
+      "Io": {
+        "ResetIo": -1,
+        "ServoOn": -1,
+        "Alarm": -1,
+        "Nel": 35,
+        "InvNel": false,
+        "Org": -1,
+        "InvOrg": false,
+        "Pel": 11,
+        "InvPel": false,
+        "IsNelAsDatum": true
+      },
+      "Motion": {
+        "Acc": 3000000,
+        "Dec": 3000000,
+        "FastDec": 5000000,
+        "Speed": 300000,
+        "SRampMs": 100
+      },
+      "Home": {
+        "Mode": 14,
+        "mmMode": "步进驱动器只能用14，因为其Z相信号输出为单端模式。",
+        "Acc": 1000000,
+        "Dec": 1000000,
+        "HiSpeed": 100000,
+        "CreepSpeed": 2000
+      }
+    }
+  ]
+}

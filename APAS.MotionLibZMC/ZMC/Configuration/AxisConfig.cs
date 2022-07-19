@@ -1,33 +1,23 @@
-﻿namespace APAS.MotionLib.ZMC.Configuration
+﻿using System.Web.UI;
+
+namespace APAS.MotionLib.ZMC.Configuration
 {
 	public class AxisConfig
 	{
+		/// <summary>
+		/// 系统控制参数。
+		/// </summary>
+        public ControlConfig Control { get; set; } = new ControlConfig();
 
 		/// <summary>
-		/// 轴索引
+		/// 数字输入输出配置。
 		/// </summary>
-		public int Index { get; set; } = -1;
-		/// <summary>
-		/// 脉冲当量
-		/// </summary>
-		public float Units { get; set; } = -1;
+        public IoConfig Io { get; set; } = new IoConfig();
 
 		/// <summary>
-		/// 轴类型
+		/// 运动参数控制。
 		/// </summary>
-		public int Type { get; set; } = -1;
-
-
-		/// <summary>
-		/// 脉冲模式设置
-		/// </summary>
-		public int InvertStep { get; set; } = 0;
-
-
-		/// <summary>
-		/// 应用于复位伺服驱动器的输出IO。
-		/// </summary>
-		public int ResetIo { get; set; } = -1;
+        public MotionConfig Motion { get; set; } = new MotionConfig();
 
 		/// <summary>
 		/// 回零参数
