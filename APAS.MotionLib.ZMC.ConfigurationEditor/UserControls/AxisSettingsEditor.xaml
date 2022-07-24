@@ -1,9 +1,8 @@
-﻿<UserControl x:Class="APAS.MotionLib.ZMC.ConfigurationEditor.Views.AxisSettingsEditor"
+﻿<UserControl x:Class="APAS.MotionLib.ZMC.ConfigurationEditor.UserControls.AxisSettingsEditor"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
-             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
-             xmlns:local="clr-namespace:APAS.MotionLib.ZMC.ConfigurationEditor.Views"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:core="clr-namespace:APAS.MotionLib.ZMC.ConfigurationEditor.Core"
              xmlns:vm="clr-namespace:APAS.MotionLib.ZMC.ConfigurationEditor.ViewModules"
              xmlns:dtsr="clr-namespace:APAS.MotionLib.ZMC.ConfigurationEditor.DataTemplateSelectors"
@@ -11,7 +10,6 @@
              xmlns:System="clr-namespace:System;assembly=mscorlib"
              xmlns:conv="clr-namespace:APAS.MotionLib.ZMC.ConfigurationEditor.Converters"
              mc:Ignorable="d" 
-             d:DataContext="{d:DesignInstance IsDesignTimeCreatable=True, Type=vm:MainWindowViewModel}"
              d:DesignHeight="450" d:DesignWidth="800">
     <UserControl.Resources>
         <conv:DummyConverter x:Key="DummyConverter"/>
@@ -30,13 +28,6 @@
             </ObjectDataProvider.MethodParameters>
         </ObjectDataProvider>
 
-        <ObjectDataProvider x:Key="EnumHomeSensorSource" MethodName="GetValues"
-                            ObjectType="{x:Type System:Enum}">
-            <ObjectDataProvider.MethodParameters>
-                <x:Type TypeName="core:HomeSensorSelectionSource"/>
-            </ObjectDataProvider.MethodParameters>
-        </ObjectDataProvider>
-        
         <ObjectDataProvider x:Key="EnumPulsePolaritySource" MethodName="GetValues"
                             ObjectType="{x:Type System:Enum}">
             <ObjectDataProvider.MethodParameters>
@@ -124,24 +115,7 @@
                         </Style>
                     </DataGridTemplateColumn.CellStyle>
                 </DataGridTemplateColumn>
-                <DataGridTemplateColumn Header="2. 零点位置输入">
-                    <DataGridTemplateColumn.CellTemplate>
-                        <DataTemplate>
-                            <TextBlock 
-                                Text="{Binding HomeSensor}"
-                                HorizontalAlignment="Center"
-                                VerticalAlignment="Center"/>
-                        </DataTemplate>
-                    </DataGridTemplateColumn.CellTemplate>
-                    <DataGridTemplateColumn.CellEditingTemplate>
-                        <DataTemplate>
-                            <ComboBox 
-                            ItemsSource="{Binding Source={StaticResource EnumHomeSensorSource}}"
-                            SelectedItem="{Binding HomeSensor, Mode=TwoWay}"/>
-                        </DataTemplate>
-                    </DataGridTemplateColumn.CellEditingTemplate>
-                </DataGridTemplateColumn>
-                <DataGridTemplateColumn Header="3. 负限位输入">
+                <DataGridTemplateColumn Header="2. 负限位输入">
                     <DataGridTemplateColumn.CellTemplate>
                         <DataTemplate>
                             <TextBlock 
@@ -158,7 +132,7 @@
                         </DataTemplate>
                     </DataGridTemplateColumn.CellEditingTemplate>
                 </DataGridTemplateColumn>
-                <DataGridTemplateColumn Header="4. 负限位输入电平翻转">
+                <DataGridTemplateColumn Header="3. 负限位输入电平翻转">
                     <DataGridTemplateColumn.CellTemplate>
                         <DataTemplate>
                             <CheckBox 
@@ -168,7 +142,7 @@
                         </DataTemplate>
                     </DataGridTemplateColumn.CellTemplate>
                 </DataGridTemplateColumn>
-                <DataGridTemplateColumn Header="5. 正限位输入">
+                <DataGridTemplateColumn Header="4. 正限位输入">
                     <DataGridTemplateColumn.CellTemplate>
                         <DataTemplate>
                             <TextBlock 
@@ -185,7 +159,7 @@
                         </DataTemplate>
                     </DataGridTemplateColumn.CellEditingTemplate>
                 </DataGridTemplateColumn>
-                <DataGridTemplateColumn Header="6. 正限位输入电平翻转">
+                <DataGridTemplateColumn Header="5. 正限位输入电平翻转">
                     <DataGridTemplateColumn.CellTemplate>
                         <DataTemplate>
                             <CheckBox 
@@ -195,7 +169,7 @@
                         </DataTemplate>
                     </DataGridTemplateColumn.CellTemplate>
                 </DataGridTemplateColumn>
-                <DataGridTemplateColumn Header="7. 回零模式">
+                <DataGridTemplateColumn Header="6. 回零模式">
                     <DataGridTemplateColumn.CellTemplate>
                         <DataTemplate>
                             <TextBlock 

@@ -4,19 +4,49 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:APAS.MotionLib.ZMC.ConfigurationEditor"
-        xmlns:uc="clr-namespace:APAS.MotionLib.ZMC.ConfigurationEditor.Views"
         xmlns:md="https://github.com/fantasticfiasco/mvvm-dialogs"
+        xmlns:usercontrols="clr-namespace:APAS.MotionLib.ZMC.ConfigurationEditor.UserControls"
+        xmlns:viewModules="clr-namespace:APAS.MotionLib.ZMC.ConfigurationEditor.ViewModules"
         mc:Ignorable="d"
-        Title="MainWindow" Height="450" Width="800"
+        d:DataContext="{d:DesignInstance IsDesignTimeCreatable=True, Type=viewModules:MainWindowViewModel}"
+        Title="MainWindow" Height="800" Width="800"
         md:DialogServiceViews.IsRegistered="True" >
+    <Window.Resources>
+        <Style TargetType="GroupBox" BasedOn="{StaticResource MaterialDesignCardGroupBox}">
+            <Setter Property="Margin" Value="5 5 5 10"/>
+        </Style>
+    </Window.Resources>
     <DockPanel LastChildFill="True">
         <Menu DockPanel.Dock="Top">
             <MenuItem Header="文件">
                 <MenuItem Header="导入配置" Command="{Binding ImportConfigurationFromJson}"/>
                 <MenuItem Header="导出配置" Command="{Binding ExportConfigurationToJson}"/>
             </MenuItem>
-        </Menu>    
+        </Menu>
 
-        <uc:AxisSettingsEditor/>
+        <StackPanel DockPanel.Dock="Top">
+            <GroupBox Header="系统连接" >
+               <usercontrols:DeviceConnection
+                   IsConnected="{Binding IsConnected}"
+                   IpAddress="{Binding IpAddress, Mode=TwoWay}"
+                   ConnectCommand="{Binding ConnectCommand}"
+                   DisconnectCommand="{Binding DisconnectCommand}"
+                   UpdateConfigCommand="{Binding UpdateConfigCommand}"/>
+            </GroupBox>
+
+            <GroupBox Header="轴控制" >
+                <usercontrols:AxisMoveControl
+                    IsEnabled="{Binding IsConnected}"/>
+            </GroupBox>
+
+            <GroupBox Header="模拟量"  >
+                <usercontrols:AnalogView
+                    IsEnabled="{Binding IsConnected}"/>
+            </GroupBox>
+        </StackPanel>
+
+        <GroupBox Header="参数配置" >
+            <usercontrols:AxisSettingsEditor/>
+        </GroupBox>
     </DockPanel>
 </Window>

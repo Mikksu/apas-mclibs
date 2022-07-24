@@ -37,14 +37,7 @@
         IN_32,
         IN_33,
         IN_34,
-        IN_35,
-        NONE = 65535
-    }
-
-    public enum HomeSensorSelectionSource
-    {
-        负限位,
-        正限位
+        IN_35
     }
 
     /// <summary>

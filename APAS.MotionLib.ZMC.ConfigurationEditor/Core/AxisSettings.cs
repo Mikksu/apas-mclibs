@@ -13,11 +13,10 @@ namespace APAS.MotionLib.ZMC.ConfigurationEditor.Core
         public AxisSettings(int axisId)
         {
             if (axisId is < 0 or > 11)
-                throw new ArgumentOutOfRangeException(nameof(axisId), "轴号必须为1~12。");
+                throw new ArgumentOutOfRangeException(nameof(axisId), "轴号必须为0~11。");
 
             _axisIndex = axisId;
 
-            _homeSensor = HomeSensorSelectionSource.负限位;
             _diNel = (DiSource)(axisId + 24);
             _diPel = (DiSource)(axisId + 0);
 
@@ -47,13 +46,6 @@ namespace APAS.MotionLib.ZMC.ConfigurationEditor.Core
 
 
         #region Hardware Connection
-
-        /// <summary>
-        /// 原点信号使用的数字输入。
-        /// </summary>
-        [GenerateProperty]
-        [Display(Order = 2, Name = "Home位置", GroupName = "Common")]
-        private HomeSensorSelectionSource _homeSensor;
 
         /// <summary>
         /// 负限位信号使用的数字输入。

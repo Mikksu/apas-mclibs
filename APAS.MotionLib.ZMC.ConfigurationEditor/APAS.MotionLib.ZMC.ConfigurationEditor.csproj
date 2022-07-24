@@ -39,7 +39,7 @@
     <DebugType>full</DebugType>
     <Optimize>false</Optimize>
     <OutputPath>bin\Debug\</OutputPath>
-    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <DefineConstants>TRACE;DEBUG;IGNORE_ZMC</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
@@ -53,8 +53,20 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="APAS.CoreLib, Version=1.1.1.8, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\APAS.CoreLib.1.1.1.8\lib\net48\APAS.CoreLib.dll</HintPath>
+    </Reference>
+    <Reference Include="APAS.Interface, Version=1.1.3.4, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\APAS.Interface.1.1.3.4\lib\net461\APAS.Interface.dll</HintPath>
+    </Reference>
+    <Reference Include="APAS.McLib.Sdk, Version=1.1.4.16, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\APAS.McLib.Sdk.1.1.4.16\lib\net48\APAS.McLib.Sdk.dll</HintPath>
+    </Reference>
     <Reference Include="CommunityToolkit.Mvvm, Version=7.1.0.0, Culture=neutral, PublicKeyToken=4aff67a105548ee2, processorArchitecture=MSIL">
       <HintPath>..\packages\CommunityToolkit.Mvvm.7.1.2\lib\netstandard2.0\CommunityToolkit.Mvvm.dll</HintPath>
+    </Reference>
+    <Reference Include="log4net, Version=2.0.11.0, Culture=neutral, PublicKeyToken=669e0ddf0bb1aa2a, processorArchitecture=MSIL">
+      <HintPath>..\packages\log4net.2.0.11\lib\net45\log4net.dll</HintPath>
     </Reference>
     <Reference Include="MaterialDesignColors, Version=2.0.6.0, Culture=neutral, PublicKeyToken=df2a72020bd7962a, processorArchitecture=MSIL">
       <HintPath>..\packages\MaterialDesignColors.2.0.6\lib\net452\MaterialDesignColors.dll</HintPath>
@@ -85,6 +97,7 @@
       <HintPath>..\packages\System.ComponentModel.Annotations.5.0.0\lib\net461\System.ComponentModel.Annotations.dll</HintPath>
     </Reference>
     <Reference Include="System.ComponentModel.DataAnnotations" />
+    <Reference Include="System.Configuration" />
     <Reference Include="System.Data" />
     <Reference Include="System.Memory, Version=4.0.1.1, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
       <HintPath>..\packages\System.Memory.4.5.4\lib\net461\System.Memory.dll</HintPath>
@@ -99,6 +112,7 @@
     <Reference Include="System.Threading.Tasks.Extensions, Version=4.2.0.1, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
       <HintPath>..\packages\System.Threading.Tasks.Extensions.4.5.4\lib\net461\System.Threading.Tasks.Extensions.dll</HintPath>
     </Reference>
+    <Reference Include="System.Web" />
     <Reference Include="System.Xml" />
     <Reference Include="Microsoft.CSharp" />
     <Reference Include="System.Core" />
@@ -133,12 +147,26 @@
       <SubType>Designer</SubType>
     </ApplicationDefinition>
     <Compile Include="Converters\DummyConverter.cs" />
+    <Compile Include="Converters\ReverseBoolConverter.cs" />
     <Compile Include="Core\AxisSettings.cs" />
     <Compile Include="Core\AxisSettingsCollection.cs" />
     <Compile Include="Core\GlobalDef.cs" />
     <Compile Include="DataTemplateSelectors\AxisSettingsCellTemplateSelector.cs" />
+    <Compile Include="Services\CreateApasZmcConfigFileService.cs" />
+    <Compile Include="UserControls\AnalogView.xaml.cs">
+      <DependentUpon>AnalogView.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="UserControls\AxisMoveControl.xaml.cs">
+      <DependentUpon>AxisMoveControl.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="UserControls\DeviceConnection.xaml.cs">
+      <DependentUpon>DeviceConnection.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="UserControls\DummyControl.xaml.cs">
+      <DependentUpon>DummyControl.xaml</DependentUpon>
+    </Compile>
     <Compile Include="ViewModules\MainWindowViewModel.cs" />
-    <Compile Include="Views\AxisSettingsEditor.xaml.cs">
+    <Compile Include="UserControls\AxisSettingsEditor.xaml.cs">
       <DependentUpon>AxisSettingsEditor.xaml</DependentUpon>
     </Compile>
     <Page Include="MainWindow.xaml">
@@ -153,7 +181,23 @@
       <DependentUpon>MainWindow.xaml</DependentUpon>
       <SubType>Code</SubType>
     </Compile>
-    <Page Include="Views\AxisSettingsEditor.xaml">
+    <Page Include="UserControls\AnalogView.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="UserControls\AxisMoveControl.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="UserControls\AxisSettingsEditor.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="UserControls\DeviceConnection.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="UserControls\DummyControl.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>
@@ -201,7 +245,21 @@
     <Analyzer Include="..\packages\DevExpress.Mvvm.CodeGenerators.22.1.1\analyzers\dotnet\cs\DevExpress.Mvvm.CodeGenerators.dll" />
   </ItemGroup>
   <ItemGroup>
-    <Folder Include="Usercontrols\" />
+    <Folder Include="Views\" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\APAS.MotionLibZMC\ZMC\APAS.MotionLib.ZMC.csproj">
+      <Project>{2e715d2b-8081-4d89-88be-1fd572e1577b}</Project>
+      <Name>APAS.MotionLib.ZMC</Name>
+    </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="zauxdll.dll">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="zmotion.dll">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <Import Project="..\packages\MaterialDesignThemes.4.5.0\build\MaterialDesignThemes.targets" Condition="Exists('..\packages\MaterialDesignThemes.4.5.0\build\MaterialDesignThemes.targets')" />

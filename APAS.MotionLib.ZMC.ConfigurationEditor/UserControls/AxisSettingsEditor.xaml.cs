@@ -5,7 +5,7 @@ using System.Reflection;
 using System.Windows.Controls;
 using APAS.MotionLib.ZMC.ConfigurationEditor.DataTemplateSelectors;
 
-namespace APAS.MotionLib.ZMC.ConfigurationEditor.Views
+namespace APAS.MotionLib.ZMC.ConfigurationEditor.UserControls
 {
     /// <summary>
     /// Interaction logic for AxisSettingsEditor.xaml
