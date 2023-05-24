@@ -13,6 +13,7 @@ using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using APAS.CoreLib.Charting;
 
 /*
  注意：
@@ -107,7 +108,7 @@ namespace APAS.MotionLib.ZMC
             // 先执行一次急停，确保左右轴均处于停止状态；否则下面的ChildServoOn异常。
             ChildEmergencyStop();
 
-            ApplyConfig(_hMc, _mcConfig);
+            //ApplyConfig(_hMc, _mcConfig);
 
             // Servo On 所有轴
             for (var i = 0; i < AxisCount; i++)

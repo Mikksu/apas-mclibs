@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+using APAS.CoreLib.Charting;
 using APAS.McLib.Sdk;
 using APAS.McLib.Sdk.Core;
 using APAS.McLib.Sdk.Exceptions;

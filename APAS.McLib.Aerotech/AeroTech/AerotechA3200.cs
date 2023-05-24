@@ -7,6 +7,7 @@ using Aerotech.A3200.Commands;
 using Aerotech.A3200.DataCollection;
 using Aerotech.A3200.Information;
 using Aerotech.A3200.Status;
+using APAS.CoreLib.Charting;
 using APAS.McLib.Sdk;
 using APAS.McLib.Sdk.Core;
 using log4net;

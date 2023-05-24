@@ -19,8 +19,13 @@
     <DockPanel LastChildFill="True">
         <Menu DockPanel.Dock="Top">
             <MenuItem Header="文件">
-                <MenuItem Header="导入配置" Command="{Binding ImportConfigurationFromJson}"/>
-                <MenuItem Header="导出配置" Command="{Binding ExportConfigurationToJson}"/>
+                <MenuItem Header="打开工程" Command="{Binding ReadProjectCommand}"/>
+                <MenuItem Header="保存工程" Command="{Binding SaveProjectCommand}"/>
+                <Separator/>
+                <MenuItem Header="导入导出">
+                    <MenuItem Header="导入APAS配置" Command="{Binding ImportFromApasConfigFile}"/>
+                    <MenuItem Header="导出APAS配置" Command="{Binding ExportToApasConfigFile}"/>
+                </MenuItem>
             </MenuItem>
         </Menu>
 

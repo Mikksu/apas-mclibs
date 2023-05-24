@@ -86,7 +86,7 @@ namespace APAS.MotionLib.ZMC.ConfigurationEditor.ViewModules
         /// <summary>
         /// 从Json文件导入。
         /// </summary>
-        public RelayCommand ImportConfigurationFromJson
+        public RelayCommand ReadProjectCommand
         {
             get
             {
@@ -112,7 +112,7 @@ namespace APAS.MotionLib.ZMC.ConfigurationEditor.ViewModules
                     }
                     catch (Exception ex)
                     {
-                        _dialogService?.ShowMessageBox(this, $"无法导入配置，{ex.Message}", "错误", MessageBoxButton.OK,
+                        _dialogService?.ShowMessageBox(this, $"无法打开工程，{ex.Message}", "错误", MessageBoxButton.OK,
                             MessageBoxImage.Error);
                     }
                 });
@@ -123,7 +123,7 @@ namespace APAS.MotionLib.ZMC.ConfigurationEditor.ViewModules
         /// <summary>
         /// 导出为Json文件。
         /// </summary>
-        public RelayCommand ExportConfigurationToJson
+        public RelayCommand SaveProjectCommand
         {
             get
             {
@@ -143,17 +143,85 @@ namespace APAS.MotionLib.ZMC.ConfigurationEditor.ViewModules
                     }
                     catch (Exception ex)
                     {
-                        _dialogService?.ShowMessageBox(this, $"无法导出配置，{ex.Message}", "错误", MessageBoxButton.OK,
+                        _dialogService?.ShowMessageBox(this, $"无法保存工程，{ex.Message}", "错误", MessageBoxButton.OK,
                             MessageBoxImage.Error);
                     }
-                   
-                    
                 });
             }
         }
 
+        /// <summary>
+        /// 导入APAS配置文件
+        /// </summary>
+        public RelayCommand ImportFromApasConfigFile
+        {
+            get
+            {
+                return new RelayCommand(() =>
+                {
+                    try
+                    {
 
 
+                        var dialogSettings = new OpenFileDialogSettings
+                        {
+                            Filter = "JSON|*.json",
+                            Title = "打开APAS配置文件",
+                            Multiselect = false
+                        };
+
+                        var ret = _dialogService?.ShowOpenFileDialog(this, dialogSettings);
+                        if (!ret.HasValue || !ret.Value)
+                            return;
+
+                        // 导入Json文件
+                        var fileName = dialogSettings.FileName;
+                        var settings = _apasService.ImportApasZmcConfigJsonFile(fileName);
+                        Settings = settings;
+                    }
+                    catch (Exception ex)
+                    {
+                        _dialogService?.ShowMessageBox(this, $"无法导入APAS配置，{ex.Message}", "错误", MessageBoxButton.OK,
+                            MessageBoxImage.Error);
+                    }
+                });
+            }
+        }
+
+        /// <summary>
+        /// 导出APAS配置文件
+        /// </summary>
+        public RelayCommand ExportToApasConfigFile
+        {
+            get
+            {
+                return new RelayCommand(() =>
+                {
+                    try
+                    {
+                        var settings = new SaveFileDialogSettings
+                        {
+                            Filter = "JSON|*.json",
+                            Title = "保存APAS配置文件"
+                        };
+                        var ret = _dialogService?.ShowSaveFileDialog(this, settings);
+                        if (ret.HasValue && ret.Value)
+                        {
+                            _apasService.CreateApasZmcConfigJsonFile(Settings, settings.FileName);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        _dialogService?.ShowMessageBox(this, $"无法导出APAS配置，{ex.Message}", "错误", MessageBoxButton.OK,
+                            MessageBoxImage.Error);
+                    }
+                });
+            }
+        }
+
+        /// <summary>
+        /// 连接到控制器
+        /// </summary>
         public RelayCommand ConnectCommand
         {
             get

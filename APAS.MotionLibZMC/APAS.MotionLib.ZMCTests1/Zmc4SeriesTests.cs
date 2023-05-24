@@ -14,8 +14,8 @@ namespace APAS.MotionLib.ZMC.Tests
 		[TestMethod()]
 		public void Zmc4SeriesTest()
 		{
-			var zmc = new Zmc4Series("192.168.0.11", 0, "Zmc4SeriesConf.json,");
-			zmc.UnitTest(0);
+			var mc = new Zmc4Series("192.168.0.11", 0, "Zmc4SeriesConf.json,");
+            mc.UnitTest(0);
 
 		}
 	}

@@ -2,17 +2,14 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
-using APAS.McLib.Sdk;
 using log4net;
 using M12;
-using M12.Base;
 using M12.Commands.Alignment;
 using M12.Definitions;
 using M12.Exceptions;
-using Point2D = APAS.McLib.Sdk.Core.Point2D;
-using Point3D = APAS.McLib.Sdk.Core.Point3D;
-using Point2DM12 = M12.Base.Point2D;
 using System.Threading.Tasks;
+using APAS.CoreLib.Charting;
+using APAS.McLib.Sdk;
 
 namespace APAS.McLib.Irixi
 {
@@ -90,7 +87,7 @@ namespace APAS.McLib.Irixi
 
         #region Events
 
-        private void _m12_OnUnitStateUpdated(object sender, UnitState e)
+        private void _m12_OnUnitStateUpdated(object sender, M12.Base.UnitState e)
         {
             RaiseAxisStateUpdatedEvent(new AxisStatusArgs(UnitIdToAxisIndex(e.Id), e.AbsPosition, e.IsHomed));
         }
@@ -120,7 +117,7 @@ namespace APAS.McLib.Irixi
 
         protected sealed override void ChildInit()
         {
-            SystemInformation info;
+            M12.Base.SystemInformation info;
             try
             {
                 Logger?.Debug($"connecting to the M12({PortName}/{BaudRate}) ...");
@@ -362,9 +359,18 @@ namespace APAS.McLib.Irixi
             StartFast1D(axis, range, interval, speed, analogCapture, out scanResult, -1, out _);
         }
 
+        protected void ChildStartFast1D(int axis, double range, double interval, double speed,
+            int analogCapture,
+            out IEnumerable<Point2D> scanResult, 
+            int analogCapture2)
+        {
+            ChildStartFast1D(axis, range, interval, speed, analogCapture, out scanResult, analogCapture2, out _);
+        }
+
         protected override void ChildStartFast1D(int axis, double range, double interval, double speed,
             int analogCapture,
-            out IEnumerable<Point2D> scanResult, int analogCapture2, out IEnumerable<Point2D> scanResult2)
+            out IEnumerable<Point2D> scanResult, 
+            int analogCapture2, out IEnumerable<Point2D> scanResult2)
         {
             //TODO 解决多台M12模拟量级联的问题
             //if (analogCapture.Parent is IrixiM12BasedAnalogController acM12Based
@@ -372,7 +378,7 @@ namespace APAS.McLib.Irixi
             {
                 var unitId = AxisIndexToUnitId(axis);
 
-                List<Point2DM12> scanPoints = null, scanPoints2 = null;
+                List<M12.Base.Point2D> scanPoints = null, scanPoints2 = null;
                 if (analogCapture2 < 0)
                     _m12.StartFast1D(unitId, (int) range, (ushort) interval, (byte) speed,
                         ConvertChannelToAdcChannelsEnum(analogCapture),

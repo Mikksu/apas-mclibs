@@ -1,6 +1,5 @@
 ﻿using ACS.SPiiPlusNET;
 using APAS.McLib.Sdk;
-using APAS.McLib.Sdk.Core;
 using APAS.McLib.Sdk.Exceptions;
 using log4net;
 using System;
@@ -9,6 +8,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using APAS.CoreLib.Charting;
 using AcsApi = ACS.SPiiPlusNET.Api;
 using AcsAxis = ACS.SPiiPlusNET.Axis;
 
