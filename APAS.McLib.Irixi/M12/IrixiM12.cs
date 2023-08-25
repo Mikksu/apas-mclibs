@@ -356,7 +356,7 @@ namespace APAS.McLib.Irixi
             int analogCapture,
             out IEnumerable<Point2D> scanResult)
         {
-            StartFast1D(axis, range, interval, speed, analogCapture, out scanResult, -1, out _);
+            ChildStartFast1D(axis, range, interval, speed, analogCapture, out scanResult, -1, out _);
         }
 
         protected void ChildStartFast1D(int axis, double range, double interval, double speed,
