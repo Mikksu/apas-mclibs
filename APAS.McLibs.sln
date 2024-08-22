@@ -1,23 +1,23 @@
-﻿
+
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 16
 VisualStudioVersion = 16.0.32002.261
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "APAS.MotionLib.ZMC", "APAS.MotionLibZMC\ZMC\APAS.MotionLib.ZMC.csproj", "{2E715D2B-8081-4D89-88BE-1FD572E1577B}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "APAS.MotionLib.ZMC", "APAS.MotionLibZMC\ZMC\APAS.MotionLib.ZMC.csproj", "{2E715D2B-8081-4D89-88BE-1FD572E1577B}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "APAS.MotionLib.GTS800", "APAS.MotionLib.GTS800\GTS800\APAS.MotionLib.GTS800.csproj", "{510C7738-F760-437E-95F2-AFCD1570F1C7}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "APAS.MotionLib.GTS800", "APAS.MotionLib.GTS800\GTS800\APAS.MotionLib.GTS800.csproj", "{510C7738-F760-437E-95F2-AFCD1570F1C7}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "APAS.McLib.Virtual", "APAS.McLib.Virtual\APAS.McLib.Virtual.csproj", "{A4787B22-4A35-4771-815C-F8D1AAFC8B95}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "APAS.McLib.Virtual", "APAS.McLib.Virtual\APAS.McLib.Virtual.csproj", "{A4787B22-4A35-4771-815C-F8D1AAFC8B95}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "APAS.McLib.Irixi", "APAS.McLib.Irixi\M12\APAS.McLib.Irixi.csproj", "{927E66A7-1292-4C81-9EF4-441B98FBFB0E}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "APAS.McLib.Irixi", "APAS.McLib.Irixi\M12\APAS.McLib.Irixi.csproj", "{927E66A7-1292-4C81-9EF4-441B98FBFB0E}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "APAS.McLib.Aerotech", "APAS.McLib.Aerotech\AeroTech\APAS.McLib.Aerotech.csproj", "{AE44027F-CE64-40C2-B055-6AD46FDD8A18}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "APAS.McLib.Aerotech", "APAS.McLib.Aerotech\AeroTech\APAS.McLib.Aerotech.csproj", "{AE44027F-CE64-40C2-B055-6AD46FDD8A18}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "APAS.MotionLib.ACS", "APAS.MotionLib.ACS\ACS\APAS.MotionLib.ACS.csproj", "{C6AB0173-E6CB-401D-A6FA-34F9FE66059F}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "APAS.MotionLib.ACS", "APAS.MotionLib.ACS\ACS\APAS.MotionLib.ACS.csproj", "{C6AB0173-E6CB-401D-A6FA-34F9FE66059F}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "APAS.MotionLib.ZMC.ConfigurationEditor", "APAS.MotionLib.ZMC.ConfigurationEditor\APAS.MotionLib.ZMC.ConfigurationEditor.csproj", "{EC5DD133-CB18-43F2-8FBF-2CA25C530B2F}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "APAS.MotionLib.ZMC.ConfigurationEditor", "APAS.MotionLib.ZMC.ConfigurationEditor\APAS.MotionLib.ZMC.ConfigurationEditor.csproj", "{EC5DD133-CB18-43F2-8FBF-2CA25C530B2F}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "APAS.MotionLib.ZMCTests1", "APAS.MotionLibZMC\APAS.MotionLib.ZMCTests1\APAS.MotionLib.ZMCTests1.csproj", "{C0D4D769-20E1-4854-B256-CCD88AD69722}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "APAS.MotionLib.ZMCTests1", "APAS.MotionLibZMC\APAS.MotionLib.ZMCTests1\APAS.MotionLib.ZMCTests1.csproj", "{C0D4D769-20E1-4854-B256-CCD88AD69722}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

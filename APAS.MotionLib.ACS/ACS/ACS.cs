@@ -101,9 +101,9 @@ namespace APAS.MotionLib.ACS
             AxisCount = 3;
             _axisArr = new AcsAxis[AxisCount + 1];
             for (int i = 0; i < AxisCount; i++)
-			{
-				_axisArr[i] = (AcsAxis)i;
-			}
+            {
+                _axisArr[i] = (AcsAxis)i;
+            }
             _axisArr[AxisCount] = AcsAxis.ACSC_NONE;
 
 
@@ -150,21 +150,21 @@ namespace APAS.MotionLib.ACS
         /// </summary>
         /// <param name="axis"></param>
         /// <param name="dec"></param>
-		protected override void ChildSetEsDeceleration(int axis, double dec)
-		{
+        protected override void ChildSetEsDeceleration(int axis, double dec)
+        {
             AxisMovePreparation(axis);
 
             _acs.SetKillDeceleration((AcsAxis)axis, dec);
         }
 
 
-		/// <summary>
-		/// 指定轴回机械零点。
-		/// </summary>
-		/// <param name="axis">轴号</param>
-		/// <param name="hiSpeed">快速找机械原点的速度值。如不适用请忽略。</param>
-		/// <param name="creepSpeed">找到机械原点后返回零位的爬行速度。如不适用请忽略。</param>
-		protected override void ChildHome(int axis, double hiSpeed, double creepSpeed)
+        /// <summary>
+        /// 指定轴回机械零点。
+        /// </summary>
+        /// <param name="axis">轴号</param>
+        /// <param name="hiSpeed">快速找机械原点的速度值。如不适用请忽略。</param>
+        /// <param name="creepSpeed">找到机械原点后返回零位的爬行速度。如不适用请忽略。</param>
+        protected override void ChildHome(int axis, double hiSpeed, double creepSpeed)
         {
             /*
              * 耗时操作。当执行操作时，请轮询轴状态，并调用 RaiseAxisStateUpdatedEvent(new AxisStatusArgs(axis, xxx)); 
@@ -179,17 +179,17 @@ namespace APAS.MotionLib.ACS
 
             ProgramBuffer homeProgBuf = ProgramBuffer.ACSC_BUFFER_1;
 
-			{
+            {
                 var sta = _acs.GetProgramState(homeProgBuf);
                 if ((sta & ProgramStates.ACSC_PST_COMPILED) == 0)
                     throw new Exception("the homing program is not compiled.");
-			}
+            }
 
             _acs.RunBuffer(homeProgBuf, $"HOME_AXIS_{axis}");
             Thread.Sleep(100); // delay to be sure that the program has been run.
 
             while (true)
-			{
+            {
                 var sta = _acs.GetProgramState(homeProgBuf);
                 if ((sta & ProgramStates.ACSC_PST_RUN) > 0)
                     Thread.Sleep(100);
@@ -606,7 +606,7 @@ namespace APAS.MotionLib.ACS
             var nSamples = 50000;   // 最大采样数
 
             _acs.ClearVariables();
-			
+            
             if (analogCapture2 < 0)
             {
                 var mVarName = $"{varName}({nVars})({nSamples})";
@@ -665,51 +665,51 @@ namespace APAS.MotionLib.ACS
 
 
             // 合并位置重复的数据点
-			var distinctItems1 = point2Ds1.GroupBy(p => p.X).Select(p => p.First()).OrderBy(p => p.X);
-			scanResult = distinctItems1;
+            var distinctItems1 = point2Ds1.GroupBy(p => p.X).Select(p => p.First()).OrderBy(p => p.X);
+            scanResult = distinctItems1;
 
-			if (analogCapture2 >= 0)
-			{
-				var distinctItems2 = point2Ds2.GroupBy(p => p.X).Select(p => p.First()).OrderBy(p => p.X);
-				scanResult2 = distinctItems2;
-			}
+            if (analogCapture2 >= 0)
+            {
+                var distinctItems2 = point2Ds2.GroupBy(p => p.X).Select(p => p.First()).OrderBy(p => p.X);
+                scanResult2 = distinctItems2;
+            }
 
 
-			//if (!int.TryParse(respon.ToString(), out var pCnt))
-			//    throw new Exception("无法获取采样的数据点总数。");
+            //if (!int.TryParse(respon.ToString(), out var pCnt))
+            //    throw new Exception("无法获取采样的数据点总数。");
 
-			//var startAin1 = _mcConfig.Scope.Deepth;
-			//var startAin2 = _mcConfig.Scope.Deepth * 2;
+            //var startAin1 = _mcConfig.Scope.Deepth;
+            //var startAin2 = _mcConfig.Scope.Deepth * 2;
 
-			//var pBufX = new float[_mcConfig.Scope.Deepth];
-			//var pBufY1 = new float[_mcConfig.Scope.Deepth];
-			//var pBufY2 = new float[_mcConfig.Scope.Deepth];
+            //var pBufX = new float[_mcConfig.Scope.Deepth];
+            //var pBufY1 = new float[_mcConfig.Scope.Deepth];
+            //var pBufY2 = new float[_mcConfig.Scope.Deepth];
 
-			//zmcaux.ZAux_Direct_GetTable(_hMc, 0, pCnt, pBufX);
-			//zmcaux.ZAux_Direct_GetTable(_hMc, startAin1, pCnt, pBufY1);
+            //zmcaux.ZAux_Direct_GetTable(_hMc, 0, pCnt, pBufX);
+            //zmcaux.ZAux_Direct_GetTable(_hMc, startAin1, pCnt, pBufY1);
 
-			//if(analogCapture2 >=0)
-			//    zmcaux.ZAux_Direct_GetTable(_hMc, startAin2, pCnt, pBufY2);
+            //if(analogCapture2 >=0)
+            //    zmcaux.ZAux_Direct_GetTable(_hMc, startAin2, pCnt, pBufY2);
 
-			// AIN采样值所在的位置
+            // AIN采样值所在的位置
 
-			//for (var i = 0; i < pCnt; i++)
-			//{
-			//    point2Ds1.Add(new Point2D(pBufX[i], ConvertAdcRawToRealworld(adcParam1, pBufY1[i])));
+            //for (var i = 0; i < pCnt; i++)
+            //{
+            //    point2Ds1.Add(new Point2D(pBufX[i], ConvertAdcRawToRealworld(adcParam1, pBufY1[i])));
 
-			//    if (analogCapture2 >= 0)
-			//        point2Ds2.Add(new Point2D(pBufX[i], ConvertAdcRawToRealworld(adcParam1, pBufY2[i])));
-			//}
+            //    if (analogCapture2 >= 0)
+            //        point2Ds2.Add(new Point2D(pBufX[i], ConvertAdcRawToRealworld(adcParam1, pBufY2[i])));
+            //}
 
-			//var distinctItems1 = point2Ds1.GroupBy(p => p.X).Select(p => p.First()).OrderBy(p => p.X);
-			//scanResult = distinctItems1;
+            //var distinctItems1 = point2Ds1.GroupBy(p => p.X).Select(p => p.First()).OrderBy(p => p.X);
+            //scanResult = distinctItems1;
 
-			//if (analogCapture2 >= 0)
-			//{
-			//    var distinctItems2 = point2Ds2.GroupBy(p => p.X).Select(p => p.First()).OrderBy(p => p.X);
-			//    scanResult2 = distinctItems2;
-			//}
-		}
+            //if (analogCapture2 >= 0)
+            //{
+            //    var distinctItems2 = point2Ds2.GroupBy(p => p.X).Select(p => p.First()).OrderBy(p => p.X);
+            //    scanResult2 = distinctItems2;
+            //}
+        }
 
         /// <summary>
         /// 执行快速盲扫。
@@ -737,10 +737,10 @@ namespace APAS.MotionLib.ACS
             _acs.HaltM(_axisArr);
 
             //! 注意此处不要用_axisArr.Lenght循环，因为_axisArr中的最后一个元素不是轴号。
-			for (int i = 0; i < AxisCount; i++)
-			{
+            for (int i = 0; i < AxisCount; i++)
+            {
                 _acs.WaitMotionEnd(_axisArr[i], 1000);
-			}
+            }
 
         }
 
@@ -790,9 +790,9 @@ namespace APAS.MotionLib.ACS
         }
 
 
-		#endregion
+        #endregion
 
-		#region Private Methods
+        #region Private Methods
 
         /// <summary>
         /// 检查轴是否空闲
@@ -821,7 +821,7 @@ namespace APAS.MotionLib.ACS
         }
 
         private void GetAxisError(int axis)
-		{
+        {
             var fault = _acs.GetMotorError((AcsAxis)axis);
             if (fault != 0)
                 throw new Exception($"轴[{axis}]电机异常，{_acs.GetErrorString(fault)}。");
@@ -865,7 +865,7 @@ namespace APAS.MotionLib.ACS
         /// </summary>
         /// <returns></returns>
         private bool CheckMotorIdle(int axis, out MotorStates states)
-		{
+        {
             states = _acs.GetMotorState((AcsAxis)axis);
             return (states & MotorStates.ACSC_MST_MOVE) == 0;
         }
@@ -905,7 +905,7 @@ namespace APAS.MotionLib.ACS
         }
 
         private bool GetIsHomedFlag(int axis)
-		{
+        {
             var mflags = _acs.ReadVariable("MFLAGS", from1: axis, to1: axis);
 
             var isHomed = false;
@@ -916,20 +916,20 @@ namespace APAS.MotionLib.ACS
         }
 
 
-		#endregion
+        #endregion
 
-		#region Unit Test
+        #region Unit Test
 
         public void UnitTestFast1D()
-		{
+        {
             Init();
             ServoOn(0);
             MoveAbs(0, 100, 0);
             StartFast1D(0, 100, 0.1, 20, 0, out var points, 1, out var points2);
-		}
+        }
 
         public void UnitTestAnalog()
-		{
+        {
             Init();
 
             var val = ReadAnalogInput();
@@ -938,10 +938,10 @@ namespace APAS.MotionLib.ACS
             volt = ReadAnalogInput(1);
             volt = ReadAnalogInput(2);
             volt = ReadAnalogInput(3);
-		}
+        }
 
-		public void UnitTestMotion()
-		{
+        public void UnitTestMotion()
+        {
             Init();
 
 
@@ -973,9 +973,9 @@ namespace APAS.MotionLib.ACS
                     Move(0, 100, -100);
                 }
                 catch (StoppedByUserException ex)
-				{
+                {
                     Debug.WriteLine($"Stopped by user, {ex.Message}");
-				}
+                }
             });
 
 
@@ -984,12 +984,12 @@ namespace APAS.MotionLib.ACS
             Stop();
 
 
-			for (int i = 0; i < 100; i++)
-			{
+            for (int i = 0; i < 100; i++)
+            {
                 Move(0, 30, 0.0001);
-			}
-		}
+            }
+        }
 
-		#endregion
-	}
+        #endregion
+    }
 }

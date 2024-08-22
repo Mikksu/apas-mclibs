@@ -1,5 +1,4 @@
-﻿using System.Web.UI;
-
+﻿
 namespace APAS.MotionLib.ZMC.Configuration
 {
 	public class AxisConfig

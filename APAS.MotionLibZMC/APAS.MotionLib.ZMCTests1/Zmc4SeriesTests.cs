@@ -8,15 +8,15 @@ using System.Threading.Tasks;
 
 namespace APAS.MotionLib.ZMC.Tests
 {
-	[TestClass()]
-	public class Zmc4SeriesTests
-	{
-		[TestMethod()]
-		public void Zmc4SeriesTest()
-		{
-			var mc = new Zmc4Series("192.168.0.11", 0, "Zmc4SeriesConf.json,");
+    [TestClass()]
+    public class Zmc4SeriesTests
+    {
+        [TestMethod()]
+        public void Zmc4SeriesTest()
+        {
+            var mc = new Zmc4Series("192.168.0.11", 0, "Zmc4SeriesConf.json,");
             mc.UnitTest(0);
 
-		}
-	}
+        }
+    }
 }
