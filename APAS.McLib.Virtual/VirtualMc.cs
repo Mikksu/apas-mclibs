@@ -16,6 +16,7 @@ namespace APAS.McLib.Virtual
     {
         #region Variables
 
+        private readonly Random _random = new Random();
         private bool isStopRequested = false;
 
         private readonly bool[] _fakeDi, _fakeDo;
@@ -41,8 +42,8 @@ namespace APAS.McLib.Virtual
         /// <param name="baudRate"></param>
         /// <param name="config"></param>
         /// <param name="logger"></param>
-        public VirtualMc(string portName, int baudRate, string config, ILog logger) : base(portName,
-            baudRate, config, logger)
+        public VirtualMc(string portName, int baudRate, string config, ILog logger) 
+            : base(portName, baudRate, config, logger)
         {
             //TODO 此处初始化控制器参数；如果下列参数动态读取，则可在ChildInit()函数中赋值。
             AxisCount = 32; // 最大轴数
@@ -83,9 +84,21 @@ namespace APAS.McLib.Virtual
             // 例如： InnerAxisInfoCollection.Add(new AxisInfo(1, new Version(1, 0, 0)));
             for (var i = 0; i < AxisCount; i++)
             {
-                _fakeAbsPosition[i] = int.MinValue;
+                _fakeAbsPosition[i] = _random.NextDouble() * 100;
                 InnerAxisInfoCollection.Add(new AxisInfo(i, new Version(0, 0, 1)));
             }
+
+            for (var i = 0; i < MaxDigitalInputChannels; i++)
+                _fakeDi[i] = _random.NextDouble() > 0.5;
+
+            for (var i = 0; i < MaxDigitalOutputChannels; i++)
+                _fakeDo[i] = _random.NextDouble() > 0.5;
+
+            for (var i = 0; i < MaxAnalogInputChannels; i++)
+                _fakeAi[i] = _random.NextDouble() * 100;
+
+            for (var i = 0; i < MaxAnalogOutputChannels; i++)
+                _fakeAo[i] = _random.NextDouble() * 100;
 
             StartBackgroundTask();
         }

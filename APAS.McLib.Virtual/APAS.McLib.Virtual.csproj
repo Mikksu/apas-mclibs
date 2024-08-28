@@ -1,25 +1,27 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
-  <PropertyGroup>
-    <OutputType>Library</OutputType>
-  </PropertyGroup>
-  <PropertyGroup>
-    <TargetFramework>net8.0-windows</TargetFramework>
-    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
-    <AssemblyTitle>APAS.McLib.Virtual</AssemblyTitle>
-    <Product>APAS.McLib.Virtual</Product>
-    <Copyright>Copyright ©  2021</Copyright>
-    <AssemblyVersion>1.0.2.2</AssemblyVersion>
-    <FileVersion>1.0.2.2</FileVersion>
-  </PropertyGroup>
-  <ItemGroup>
-    <Reference Include="APAS.CoreLib">
-      <HintPath>..\Dependencies\APAS.CoreLib.dll</HintPath>
-    </Reference>
-    <Reference Include="APAS.McLib.Sdk">
-      <HintPath>..\Dependencies\APAS.McLib.Sdk.dll</HintPath>
-    </Reference>
-    <Reference Include="log4net">
-      <HintPath>..\Dependencies\log4net.dll</HintPath>
-    </Reference>
-  </ItemGroup>
+	<PropertyGroup>
+		<OutputType>Library</OutputType>
+		<Copyright>Copyright © APAS 2024</Copyright>
+		<Version>1.0.2.2</Version>
+		<Authors>Mikk Su</Authors>
+		<Company>APAS</Company>
+		<Description>虚拟运动控制器</Description>
+	</PropertyGroup>
+	<PropertyGroup>
+		<TargetFramework>net8.0-windows</TargetFramework>
+		<GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+		<AssemblyTitle>APAS.McLib.Virtual</AssemblyTitle>
+		<Product>APAS.McLib.Virtual</Product>
+	</PropertyGroup>
+	<ItemGroup>
+		<Reference Include="APAS.CoreLib">
+			<HintPath>..\Dependencies\APAS.CoreLib.dll</HintPath>
+		</Reference>
+		<Reference Include="APAS.McLib.Sdk">
+			<HintPath>..\Dependencies\APAS.McLib.Sdk.dll</HintPath>
+		</Reference>
+		<Reference Include="log4net">
+			<HintPath>..\Dependencies\log4net.dll</HintPath>
+		</Reference>
+	</ItemGroup>
 </Project>
