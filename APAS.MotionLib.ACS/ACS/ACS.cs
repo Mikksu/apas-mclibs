@@ -1,7 +1,6 @@
 ﻿using ACS.SPiiPlusNET;
 using APAS.McLib.Sdk;
 using APAS.McLib.Sdk.Exceptions;
-using log4net;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -9,6 +8,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using APAS.CoreLib.Charting;
+using Caliburn.Micro;
 using AcsApi = ACS.SPiiPlusNET.Api;
 using AcsAxis = ACS.SPiiPlusNET.Axis;
 
@@ -46,7 +46,8 @@ namespace APAS.MotionLib.ACS
         /// <param name="baudRate"></param>
         /// <param name="config"></param>
         /// <param name="logger"></param>
-        public ACS(string portName, int baudRate, string config, ILog logger = null) : base(portName, baudRate, logger)
+        public ACS(string portName, int baudRate, string config, ILog logger = null) 
+            : base(portName, baudRate, logger)
         {
             var configs = config.Split(',');
             if (configs.Length == 2)

@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
-using log4net;
 using M12;
 using M12.Commands.Alignment;
 using M12.Definitions;
@@ -10,6 +9,7 @@ using M12.Exceptions;
 using System.Threading.Tasks;
 using APAS.CoreLib.Charting;
 using APAS.McLib.Sdk;
+using Caliburn.Micro;
 
 namespace APAS.McLib.Irixi
 {

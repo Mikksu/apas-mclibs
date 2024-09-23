@@ -18,9 +18,6 @@
     <Reference Include="APAS.McLib.Sdk">
       <HintPath>..\..\Dependencies\APAS.McLib.Sdk.dll</HintPath>
     </Reference>
-    <Reference Include="log4net">
-      <HintPath>..\..\Dependencies\log4net.dll</HintPath>
-    </Reference>
     <Reference Include="M12">
       <HintPath>..\..\Dependencies\M12.dll</HintPath>
     </Reference>

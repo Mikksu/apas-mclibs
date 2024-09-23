@@ -1,7 +1,6 @@
 ﻿using APAS.McLib.Sdk;
 using APAS.McLib.Sdk.Core;
 using GTS_800;
-using log4net;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
@@ -11,6 +10,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using APAS.CoreLib.Charting;
+using Caliburn.Micro;
 using static gts.mc;
 
 /*

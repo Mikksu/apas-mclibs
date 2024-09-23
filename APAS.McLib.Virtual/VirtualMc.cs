@@ -6,7 +6,7 @@ using APAS.CoreLib.Charting;
 using APAS.McLib.Sdk;
 using APAS.McLib.Sdk.Core;
 using APAS.McLib.Sdk.Exceptions;
-using log4net;
+using Caliburn.Micro;
 
 
 //！ 应用该模板时，请注意将命名空间更改为实际名称。

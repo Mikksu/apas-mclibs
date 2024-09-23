@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading;
 using Aerotech.A3200;
 using Aerotech.A3200.Commands;
@@ -10,7 +9,7 @@ using Aerotech.A3200.Status;
 using APAS.CoreLib.Charting;
 using APAS.McLib.Sdk;
 using APAS.McLib.Sdk.Core;
-using log4net;
+using Caliburn.Micro;
 using A3200 = Aerotech.A3200.Controller;
 using ApasAxisInfo = APAS.McLib.Sdk.AxisInfo;
 
