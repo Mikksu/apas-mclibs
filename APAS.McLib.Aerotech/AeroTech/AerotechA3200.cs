@@ -35,10 +35,6 @@ namespace APAS.McLib.Aerotech
 
         #endregion
 
-        #region Properties
-
-        #endregion
-
         #region Methods
 
         public void InitTest()
@@ -318,19 +314,19 @@ namespace APAS.McLib.Aerotech
             }
         }
 
-		#endregion
+        #endregion
 
-		#region UnitTest
+        #region UnitTest
 
         public void UtFast1D()
-		{
+        {
             Init();
 
             StartFast1D(3, 0.1, 1, 1, 20, out var points1);
             StartFast1D(4, 0.1, 1, 1, 20, out var points2);
             StartFast1D(5, 0.1, 1, 1, 20, out var points3);
-		}
+        }
 
-		#endregion
-	}
+        #endregion
+    }
 }
