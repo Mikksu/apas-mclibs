@@ -84,7 +84,7 @@ namespace APAS.McLib.Virtual
             for (var i = 0; i < AxisCount; i++)
             {
                 _fakeAbsPosition[i] = int.MinValue;
-                InnerAxisInfoCollection.Add(new AxisInfo(i, new Version(0, 0, 1)));
+                InnerAxisInfoCollection.Add(new AxisInfo(i, this, new Version(1, 1, 2)));
             }
 
             StartBackgroundTask();
@@ -134,7 +134,7 @@ namespace APAS.McLib.Virtual
             {
                 _fakeAbsPosition[axis] -= r.NextDouble() * 100;
                 timeFly += 10;
-                RaiseAxisStateUpdatedEvent(new AxisStatusArgs(axis, _fakeAbsPosition[axis], false, true));
+                RaiseAxisStatusUpdatedEvent(new AxisStatusUpdatedArgs(axis, _fakeAbsPosition[axis], false, true));
 
                 Thread.Sleep(10);
 
@@ -145,7 +145,7 @@ namespace APAS.McLib.Virtual
             _fakeAbsPosition[axis] = 0;
             _fakeIsHomed[axis] = true;
 
-            RaiseAxisStateUpdatedEvent(new AxisStatusArgs(axis, _fakeAbsPosition[axis], true, true));
+            RaiseAxisStatusUpdatedEvent(new AxisStatusUpdatedArgs(axis, _fakeAbsPosition[axis], true, true));
         }
 
         /// <summary>
@@ -170,12 +170,12 @@ namespace APAS.McLib.Virtual
                 {
                     _fakeAbsPosition[axis] += step;
                     distMoved += step;
-                    RaiseAxisStateUpdatedEvent(new AxisStatusArgs(axis, _fakeAbsPosition[axis]));
+                    RaiseAxisStatusUpdatedEvent(new AxisStatusUpdatedArgs(axis, _fakeAbsPosition[axis]));
                 }
                 else
                 {
                     _fakeAbsPosition[axis] += distance - distMoved;
-                    RaiseAxisStateUpdatedEvent(new AxisStatusArgs(axis, _fakeAbsPosition[axis]));
+                    RaiseAxisStatusUpdatedEvent(new AxisStatusUpdatedArgs(axis, _fakeAbsPosition[axis]));
                     break;
                 }
 
@@ -227,7 +227,7 @@ namespace APAS.McLib.Virtual
                 while (true)
                 {
                     _fakeAbsPosition[axis] += step;
-                    RaiseAxisStateUpdatedEvent(new AxisStatusArgs(axis, _fakeAbsPosition[axis]));
+                    RaiseAxisStatusUpdatedEvent(new AxisStatusUpdatedArgs(axis, _fakeAbsPosition[axis]));
 
                     Thread.Sleep(10);
 
@@ -270,7 +270,7 @@ namespace APAS.McLib.Virtual
         /// <returns>最新绝对位置</returns>
         protected override double ChildUpdateAbsPosition(int axis)
         {
-            RaiseAxisStateUpdatedEvent(new AxisStatusArgs(axis, _fakeAbsPositionJittered[axis]));
+            RaiseAxisStatusUpdatedEvent(new AxisStatusUpdatedArgs(axis, _fakeAbsPositionJittered[axis]));
             return _fakeAbsPositionJittered[axis];
         }
 
@@ -282,11 +282,11 @@ namespace APAS.McLib.Virtual
         protected override void ChildUpdateStatus(int axis)
         {
             // 注意:
-            // 1. 读取完状态后请调用 RaiseAxisStateUpdatedEvent 函数。
-            // 2. 实例化 AxisStatusArgs 时请传递所有参数。
-            //// RaiseAxisStateUpdatedEvent(new AxisStatusArgs(int.MinValue, double.NaN, false, false));
+            // 1. 读取完状态后请调用 RaiseAxisStatusUpdatedEvent 函数。
+            // 2. 实例化 AxisStatusUpdatedArgs 时请传递所有参数。
+            //// RaiseAxisStatusUpdatedEvent(new AxisStatusUpdatedArgs(int.MinValue, double.NaN, false, false));
 
-            RaiseAxisStateUpdatedEvent(new AxisStatusArgs(axis, _fakeAbsPositionJittered[axis], _fakeIsHomed[axis]));
+            RaiseAxisStatusUpdatedEvent(new AxisStatusUpdatedArgs(axis, _fakeAbsPositionJittered[axis], _fakeIsHomed[axis]));
         }
 
         /// <summary>
@@ -296,13 +296,13 @@ namespace APAS.McLib.Virtual
         protected override void ChildUpdateStatus()
         {
             // 注意:
-            // 1. 读取完状态后请循环调用 RaiseAxisStateUpdatedEvent 函数，
-            //    例如对于 8 轴轴卡，请调用针对8个轴调用 8 次 RaiseAxisStateUpdatedEvent 函数。
-            // 2. 实例化 AxisStatusArgs 时请传递所有参数。
-            //// RaiseAxisStateUpdatedEvent(new AxisStatusArgs(int.MinValue, double.NaN, false, false));
+            // 1. 读取完状态后请循环调用 RaiseAxisStatusUpdatedEvent 函数，
+            //    例如对于 8 轴轴卡，请调用针对8个轴调用 8 次 RaiseAxisStatusUpdatedEvent 函数。
+            // 2. 实例化 AxisStatusUpdatedArgs 时请传递所有参数。
+            //// RaiseAxisStatusUpdatedEvent(new AxisStatusUpdatedArgs(int.MinValue, double.NaN, false, false));
 
             for (var i = 0; i < AxisCount; i++)
-                RaiseAxisStateUpdatedEvent(new AxisStatusArgs(i, _fakeAbsPosition[i]));
+                RaiseAxisStatusUpdatedEvent(new AxisStatusUpdatedArgs(i, _fakeAbsPosition[i]));
         }
 
 
@@ -558,16 +558,7 @@ namespace APAS.McLib.Virtual
         protected override void CheckSpeed(double speed)
         {
         }
-
-        /// <summary>
-        /// 检查控制器状态。
-        /// </summary>
-        protected override void CheckController()
-        {
-            // 请勿删除该行。
-            base.CheckController();
-        }
-
+        
         #endregion
 
         #region Private Methods

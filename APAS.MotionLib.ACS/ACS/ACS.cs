@@ -167,7 +167,7 @@ namespace APAS.MotionLib.ACS
 		protected override void ChildHome(int axis, double hiSpeed, double creepSpeed)
         {
             /*
-             * 耗时操作。当执行操作时，请轮询轴状态，并调用 RaiseAxisStateUpdatedEvent(new AxisStatusArgs(axis, xxx)); 
+             * 耗时操作。当执行操作时，请轮询轴状态，并调用 RaiseAxisStatusUpdatedEvent(new AxisStatusUpdatedArgs(axis, xxx)); 
              * 以实时刷新UI上的位置。       
              */
             int rtn;
@@ -197,7 +197,7 @@ namespace APAS.MotionLib.ACS
                     break;
 
                 var pos = ChildUpdateAbsPosition(axis);
-                RaiseAxisStateUpdatedEvent(new AxisStatusArgs(axis, pos));
+                RaiseAxisStatusUpdatedEvent(new AxisStatusUpdatedArgs(axis, pos));
             }
 
             _acs.WaitProgramEnd(homeProgBuf, -1);
@@ -212,7 +212,7 @@ namespace APAS.MotionLib.ACS
             // Home完成后可能会报 ACSC_SAFETY_PE错误，需要清除；否则Move函数在最后阶段检查Fault时会报错。
             _acs.FaultClear((AcsAxis)axis);
 
-            RaiseAxisStateUpdatedEvent(new AxisStatusArgs(axis, 0, true));
+            RaiseAxisStatusUpdatedEvent(new AxisStatusUpdatedArgs(axis, 0, true));
 
         }
 
@@ -229,7 +229,7 @@ namespace APAS.MotionLib.ACS
             bool fastMoveRequested = false, double microstepRate = 0)
         {
             /*
-             * 耗时操作。当执行操作时，请轮询轴状态，并调用 RaiseAxisStateUpdatedEvent(new AxisStatusArgs(axis, xxx)); 
+             * 耗时操作。当执行操作时，请轮询轴状态，并调用 RaiseAxisStatusUpdatedEvent(new AxisStatusUpdatedArgs(axis, xxx)); 
              * 以实时刷新UI上的位置。       
             */
       
@@ -259,7 +259,7 @@ namespace APAS.MotionLib.ACS
                 currPos = ChildUpdateAbsPosition(axis);
                 // 背景线程中同时也在刷新绝对坐标，此处可以不刷新；
                 // 增加该行代码可提高UI上刷新坐标的速度。
-                RaiseAxisStateUpdatedEvent(new AxisStatusArgs(axis, (double)currPos));
+                RaiseAxisStatusUpdatedEvent(new AxisStatusUpdatedArgs(axis, currPos));
                 Thread.Sleep(10);
             } while (true);
 
@@ -267,7 +267,7 @@ namespace APAS.MotionLib.ACS
             _acs.WaitMotionEnd((AcsAxis)axis, 1000);
 
             currPos = ChildUpdateAbsPosition(axis);
-            RaiseAxisStateUpdatedEvent(new AxisStatusArgs(axis, (double)currPos));
+            RaiseAxisStatusUpdatedEvent(new AxisStatusUpdatedArgs(axis, (double)currPos));
 
             CheckAxisStatus(axis);
         }
@@ -312,7 +312,7 @@ namespace APAS.MotionLib.ACS
                 currPos = ChildUpdateAbsPosition(axis);
                 // 背景线程中同时也在刷新绝对坐标，此处可以不刷新；
                 // 增加该行代码可提高UI上刷新坐标的速度。
-                RaiseAxisStateUpdatedEvent(new AxisStatusArgs(axis, (double)currPos));
+                RaiseAxisStatusUpdatedEvent(new AxisStatusUpdatedArgs(axis, (double)currPos));
                 Thread.Sleep(10);
             } while (true);
 
@@ -320,7 +320,7 @@ namespace APAS.MotionLib.ACS
             _acs.WaitMotionEnd((AcsAxis)axis, 1000);
 
             currPos = ChildUpdateAbsPosition(axis);
-            RaiseAxisStateUpdatedEvent(new AxisStatusArgs(axis, (double)currPos));
+            RaiseAxisStatusUpdatedEvent(new AxisStatusUpdatedArgs(axis, (double)currPos));
 
             CheckAxisStatus(axis);
         }
@@ -368,19 +368,39 @@ namespace APAS.MotionLib.ACS
         protected override void ChildUpdateStatus(int axis)
         {
             // 注意:
-            // 1. 读取完状态后请调用 RaiseAxisStateUpdatedEvent 函数。
-            // 2. 实例化 AxisStatusArgs 时请传递所有参数。
-            // RaiseAxisStateUpdatedEvent(new AxisStatusArgs(int.MinValue, double.NaN, false, false));
+            // 1. 读取完状态后请调用 RaiseAxisStatusUpdatedEvent 函数。
+            // 2. 实例化 AxisStatusUpdatedArgs 时请传递所有参数。
+            // RaiseAxisStatusUpdatedEvent(new AxisStatusUpdatedArgs(int.MinValue, double.NaN, false, false));
 
+            AlarmInfo alarm = null;
+            var ax = (AcsAxis)axis;
+            
 
             var isHomed = GetIsHomedFlag(axis);
-            
             var absPos = ChildUpdateAbsPosition(axis);
-
-            var motorSta = _acs.GetMotorState((AcsAxis)axis);
+            var motorSta = _acs.GetMotorState(ax);
             var isServoOn = ((motorSta & MotorStates.ACSC_MST_ENABLE) > 0);
 
-            RaiseAxisStateUpdatedEvent(new AxisStatusArgs(axis, absPos, isHomed, isServoOn));
+            if (!isServoOn)
+            {
+                var errCode = _acs.GetMotionError(ax);
+                if (errCode != 0)
+                {
+                    var errStr = _acs.GetErrorString(errCode);
+                    alarm = new AlarmInfo(errCode, errStr);
+                }
+            }
+            else
+            {
+                var errCode = _acs.GetMotionError(ax);
+                if (errCode != 0)
+                {
+                    var errStr = _acs.GetErrorString(errCode);
+                    alarm = new AlarmInfo(errCode, errStr);
+                }
+            }
+            
+            RaiseAxisStatusUpdatedEvent(new AxisStatusUpdatedArgs(axis, absPos, isHomed, isServoOn, alarm));
         }
 
         /// <summary>
@@ -390,10 +410,10 @@ namespace APAS.MotionLib.ACS
         protected override void ChildUpdateStatus()
         {
             // 注意:
-            // 1. 读取完状态后请循环调用 RaiseAxisStateUpdatedEvent 函数，
-            //    例如对于 8 轴轴卡，请调用针对8个轴调用 8 次 RaiseAxisStateUpdatedEvent 函数。
-            // 2. 实例化 AxisStatusArgs 时请传递所有参数。
-            //// RaiseAxisStateUpdatedEvent(new AxisStatusArgs(int.MinValue, double.NaN, false, false));
+            // 1. 读取完状态后请循环调用 RaiseAxisStatusUpdatedEvent 函数，
+            //    例如对于 8 轴轴卡，请调用针对8个轴调用 8 次 RaiseAxisStatusUpdatedEvent 函数。
+            // 2. 实例化 AxisStatusUpdatedArgs 时请传递所有参数。
+            //// RaiseAxisStatusUpdatedEvent(new AxisStatusUpdatedArgs(int.MinValue, double.NaN, false, false));
             // 检查IsHomed状态
            /* var isHomed = new byte[AxisCount];
             var rtn = zmcaux.ZAux_Modbus_Get0x(_hMc, (ushort)0, (ushort)AxisCount, isHomed);

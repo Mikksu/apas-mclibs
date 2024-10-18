@@ -160,7 +160,7 @@ namespace APAS.MotionLib.ZMC
         protected override void ChildHome(int axis, double hiSpeed, double creepSpeed)
         {
             /*
-             * 耗时操作。当执行操作时，请轮询轴状态，并调用 RaiseAxisStateUpdatedEvent(new AxisStatusArgs(axis, xxx)); 
+             * 耗时操作。当执行操作时，请轮询轴状态，并调用 RaiseAxisStatusUpdatedEvent(new AxisStatusUpdatedArgs(axis, xxx)); 
              * 以实时刷新UI上的位置。       
              */
             int rtn;
@@ -207,7 +207,7 @@ namespace APAS.MotionLib.ZMC
 
                 // 背景线程中同时也在刷新绝对坐标，此处可以不刷新；
                 // 增加该行代码可提高UI上刷新坐标的速度。
-                // RaiseAxisStateUpdatedEvent(new AxisStatusArgs(axis, position));
+                // RaiseAxisStatusUpdatedEvent(new AxisStatusUpdatedArgs(axis, position));
 
                 Thread.Sleep(10);
             } while (axisMoveStatus == 0);
@@ -233,7 +233,7 @@ namespace APAS.MotionLib.ZMC
             rtn = zmcaux.ZAux_Direct_SetDecel(_hMc, axis, (float)movParam.Dec);
             CommandRtnCheck(rtn, nameof(zmcaux.ZAux_Direct_SetDecel));
 
-            RaiseAxisStateUpdatedEvent(new AxisStatusArgs(axis, 0, true));
+            RaiseAxisStatusUpdatedEvent(new AxisStatusUpdatedArgs(axis, 0, true));
 
         }
 
@@ -250,7 +250,7 @@ namespace APAS.MotionLib.ZMC
             bool fastMoveRequested = false, double microstepRate = 0)
         {
             /*
-             * 耗时操作。当执行操作时，请轮询轴状态，并调用 RaiseAxisStateUpdatedEvent(new AxisStatusArgs(axis, xxx)); 
+             * 耗时操作。当执行操作时，请轮询轴状态，并调用 RaiseAxisStatusUpdatedEvent(new AxisStatusUpdatedArgs(axis, xxx)); 
              * 以实时刷新UI上的位置。       
             */
             var axisMoveStatus = 0;
@@ -277,7 +277,7 @@ namespace APAS.MotionLib.ZMC
 
                 // 背景线程中同时也在刷新绝对坐标，此处可以不刷新；
                 // 增加该行代码可提高UI上刷新坐标的速度。
-                RaiseAxisStateUpdatedEvent(new AxisStatusArgs(axis, (double)position));
+                RaiseAxisStatusUpdatedEvent(new AxisStatusUpdatedArgs(axis, position));
                 Thread.Sleep(10);
             } while (axisMoveStatus == 0);
             //Thread.Sleep(100);
@@ -286,8 +286,7 @@ namespace APAS.MotionLib.ZMC
 
             rtn = zmcaux.ZAux_Direct_GetMpos(_hMc, axis, ref position);
             CommandRtnCheck(rtn, nameof(zmcaux.ZAux_Direct_GetMpos));
-
-            RaiseAxisStateUpdatedEvent(new AxisStatusArgs(axis, (double)position));
+            RaiseAxisStatusUpdatedEvent(new AxisStatusUpdatedArgs(axis, (double)position));
         }
 
 
@@ -324,7 +323,7 @@ namespace APAS.MotionLib.ZMC
                 rtn = zmcaux.ZAux_Direct_GetMpos(_hMc, axis, ref pos);
                 CommandRtnCheck(rtn, nameof(zmcaux.ZAux_Direct_GetMpos));
 
-                RaiseAxisStateUpdatedEvent(new AxisStatusArgs(axis, (double)pos));
+                RaiseAxisStatusUpdatedEvent(new AxisStatusUpdatedArgs(axis, (double)pos));
                 Thread.Sleep(10);
             } while (axisMoveStatus == 0);
 
@@ -334,7 +333,7 @@ namespace APAS.MotionLib.ZMC
             rtn = zmcaux.ZAux_Direct_GetMpos(_hMc, axis, ref pos);
             CommandRtnCheck(rtn, nameof(zmcaux.ZAux_Direct_GetMpos));
 
-            RaiseAxisStateUpdatedEvent(new AxisStatusArgs(axis, (double)pos));
+            RaiseAxisStatusUpdatedEvent(new AxisStatusUpdatedArgs(axis, (double)pos));
         }
 
         /// <summary>
@@ -386,17 +385,27 @@ namespace APAS.MotionLib.ZMC
         protected override void ChildUpdateStatus(int axis)
         {
             // 注意:
-            // 1. 读取完状态后请调用 RaiseAxisStateUpdatedEvent 函数。
-            // 2. 实例化 AxisStatusArgs 时请传递所有参数。
-            // RaiseAxisStateUpdatedEvent(new AxisStatusArgs(int.MinValue, double.NaN, false, false));
+            // 1. 读取完状态后请调用 RaiseAxisStatusUpdatedEvent 函数。
+            // 2. 实例化 AxisStatusUpdatedArgs 时请传递所有参数。
+            // RaiseAxisStatusUpdatedEvent(new AxisStatusUpdatedArgs(int.MinValue, double.NaN, false, false));
 
             var isHomed = new byte[1];
             var rtn = zmcaux.ZAux_Modbus_Get0x(_hMc, (ushort)axis, 1, isHomed);
             CommandRtnCheck(rtn, nameof(zmcaux.ZAux_Modbus_Get0x));
-
+            
+            // 读取伺服报警
+            AlarmInfo alarmInfo = null;
+            var diAlarm = 0; 
+            rtn = zmcaux.ZAux_Direct_GetAlmIn(_hMc, (ushort)axis, ref diAlarm); // 获取伺服报警DI编号
+            CommandRtnCheck(rtn, nameof(zmcaux.ZAux_Modbus_Get0x));
+            var isAlarmed = ChildReadDigitalInput(diAlarm); // 读取报警DI
+            if (isAlarmed ==  _mcConfig.Axes[axis].Io.AlarmLevel)
+                alarmInfo = new AlarmInfo(0, "伺服驱动器报警，请检查驱动器报警信息。"); // 如果报警DI电平为激活电平，则创建报警信息。
+            
+            
             var absPos = ChildUpdateAbsPosition(axis);
             var isServoOn = ChildReadDigitalOutput(_mcConfig.Axes[axis].Io.ServoOn);
-            RaiseAxisStateUpdatedEvent(new AxisStatusArgs(axis, absPos, isHomed[0] != 0, isServoOn));
+            RaiseAxisStatusUpdatedEvent(new AxisStatusUpdatedArgs(axis, absPos, isHomed[0] != 0, isServoOn, alarmInfo));
         }
 
         /// <summary>
@@ -406,10 +415,10 @@ namespace APAS.MotionLib.ZMC
         protected override void ChildUpdateStatus()
         {
             // 注意:
-            // 1. 读取完状态后请循环调用 RaiseAxisStateUpdatedEvent 函数，
-            //    例如对于 8 轴轴卡，请调用针对8个轴调用 8 次 RaiseAxisStateUpdatedEvent 函数。
-            // 2. 实例化 AxisStatusArgs 时请传递所有参数。
-            //// RaiseAxisStateUpdatedEvent(new AxisStatusArgs(int.MinValue, double.NaN, false, false));
+            // 1. 读取完状态后请循环调用 RaiseAxisStatusUpdatedEvent 函数，
+            //    例如对于 8 轴轴卡，请调用针对8个轴调用 8 次 RaiseAxisStatusUpdatedEvent 函数。
+            // 2. 实例化 AxisStatusUpdatedArgs 时请传递所有参数。
+            //// RaiseAxisStatusUpdatedEvent(new AxisStatusUpdatedArgs(int.MinValue, double.NaN, false, false));
             // 检查IsHomed状态
             /* var isHomed = new byte[AxisCount];
              var rtn = zmcaux.ZAux_Modbus_Get0x(_hMc, (ushort)0, (ushort)AxisCount, isHomed);
@@ -895,52 +904,53 @@ namespace APAS.MotionLib.ZMC
                 throw new Exception($"紧急停止");
 
             // 若非急停，检查轴状态
-            var reason = 0;
+            var errCode = 0;
             var statueErrorInfo = string.Empty;
 
             //int rtn = zmcaux.ZAux_Direct_GetAxisStatus(_hMc, axisIndex, ref reason);
-            var rtn = zmcaux.ZAux_Direct_GetAxisStopReason(_hMc, axisIndex, ref reason);
+            var rtn = zmcaux.ZAux_Direct_GetAxisStopReason(_hMc, axisIndex, ref errCode);
             CommandRtnCheck(rtn, nameof(zmcaux.ZAux_Direct_GetAxisStopReason));
 
-            if (reason == 0)
+            if (errCode == 0)
                 return;
-            else if ((reason & 0x2) > 0)
+            else if ((errCode & 0x2) > 0)
                 statueErrorInfo = "随动误差超限报警";
-            else if ((reason & 0x4) > 0)
+            else if ((errCode & 0x4) > 0)
                 statueErrorInfo = "与远程轴通讯错误";
-            else if ((reason & 0x8) > 0)
+            else if ((errCode & 0x8) > 0)
                 statueErrorInfo = "远程驱动器报错";
-            else if ((reason & 0x10) > 0)
+            else if ((errCode & 0x10) > 0)
                 statueErrorInfo = "正向硬限位";
-            else if ((reason & 0x20) > 0)
+            else if ((errCode & 0x20) > 0)
                 statueErrorInfo = "反向硬限位";
-            else if ((reason & 0x40) > 0)
+            else if ((errCode & 0x40) > 0)
                 statueErrorInfo = "回原点中";
-            else if ((reason & 0x80) > 0)
+            else if ((errCode & 0x80) > 0)
                 statueErrorInfo = "随动误差超限报警";
-            else if ((reason & 0x100) > 0)
+            else if ((errCode & 0x100) > 0)
                 statueErrorInfo = "随动误差超限出错";
-            else if ((reason & 0x200) > 0)
+            else if ((errCode & 0x200) > 0)
                 statueErrorInfo = "超过正向软限位";
-            else if ((reason & 0x400) > 0)
+            else if ((errCode & 0x400) > 0)
                 statueErrorInfo = "超过负向软限位";
-            else if ((reason & 0x800) > 0)
+            else if ((errCode & 0x800) > 0)
                 //statueErrorInfo = "CANCLE执行中";
                 throw new StoppedByUserException();
-            else if ((reason & 0x1000) > 0)
+            else if ((errCode & 0x1000) > 0)
                 statueErrorInfo = "脉冲频率操过MAX_SPEED限制";
-            else if ((reason & 0x4000) > 0)
+            else if ((errCode & 0x4000) > 0)
                 statueErrorInfo = "机械手指令坐标错误";
-            else if ((reason & 0x40000) > 0)
+            else if ((errCode & 0x40000) > 0)
                 statueErrorInfo = "电源异常";
-            else if ((reason & 0x200000) > 0)
+            else if ((errCode & 0x200000) > 0)
                 statueErrorInfo = "运动中触发特殊运动指令失败";
-            else if ((reason & 0x400000) > 0)
+            else if ((errCode & 0x400000) > 0)
                 statueErrorInfo = "报警信号输入";
-            else if ((reason & 0x800000) > 0)
+            else if ((errCode & 0x800000) > 0)
                 statueErrorInfo = "轴进入暂停状态";
 
-            throw new Exception($"轴[{axisIndex}]运行异常，错误代码(0x{reason:X})，{statueErrorInfo}");
+            RaiseAxisAlarmedEvent(new AxisAlarmedArgs(axisIndex, new AlarmInfo(errCode, statueErrorInfo)));
+            throw new Exception($"轴[{axisIndex}]运行异常，错误代码(0x{errCode:X})，{statueErrorInfo}");
         }
 
         private void ReadParamFile(string filePath, ref McConfig cardParam)

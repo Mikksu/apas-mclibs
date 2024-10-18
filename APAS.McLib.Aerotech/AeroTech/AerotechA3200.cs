@@ -9,7 +9,6 @@ using Aerotech.A3200.Information;
 using Aerotech.A3200.Status;
 using APAS.CoreLib.Charting;
 using APAS.McLib.Sdk;
-using APAS.McLib.Sdk.Core;
 using log4net;
 using A3200 = Aerotech.A3200.Controller;
 using ApasAxisInfo = APAS.McLib.Sdk.AxisInfo;
@@ -50,34 +49,25 @@ namespace APAS.McLib.Aerotech
 
             Logger?.Debug($"{AxisCount} axes were found.");
 
-            foreach (var aerotechAxis in _controller.Information.Axes)
+            foreach (var a3200 in _controller.Information.Axes.Where(x => x.AxisType == ComponentType.NdriveMP))
             {
-                Logger?.Info($"Initializing the axis {aerotechAxis.Name}...");
-                if (aerotechAxis.AxisType == ComponentType.NdriveMP)
-                {
-                    Logger?.Debug($"finding the axis configured with the name {aerotechAxis.Name}...");
+                Logger?.Info($"Initializing the axis {a3200.Name}...");
+                Logger?.Debug($"finding the axis configured with the name {a3200.Name}...");
+                InnerAxisInfoCollection.Add(new ApasAxisInfo(a3200.Number, this, a3200.FirmwareVersion));
 
-                    InnerAxisInfoCollection.Add(new ApasAxisInfo(aerotechAxis.Number, aerotechAxis.FirmwareVersion));
+                // enable the servo.
+                Logger?.Debug($"Enabling the axis {a3200.Name}...");
+                _controller.Commands.Axes[a3200.Name].Motion.Enable();
 
-                    // enable the servo.
-                    Logger?.Debug($"Enabling the axis {aerotechAxis.Name}...");
-                    _controller.Commands.Axes[aerotechAxis.Name].Motion.Enable();
+                // sync the current status so we don't need to home the axis if it's homed already.
+                Logger?.Debug($"Syncing the Homed State...");
+                var isHomed =
+                    _controller.Commands.Status.AxisStatus(a3200.Number, AxisStatusSignal.HomeState) != 0;
 
-                    // sync the current status so we don't need to home the axis if it's homed already.
-                    Logger?.Debug($"Syncing the Homed State...");
-                    var isHomed =
-                        _controller.Commands.Status.AxisStatus(aerotechAxis.Number, AxisStatusSignal.HomeState) != 0;
+                Logger?.Debug($"Syncing the position...");
+                var absPos = ChildUpdateAbsPosition(a3200.Number);
 
-                    Logger?.Debug($"Syncing the position...");
-                    var absPos = ChildUpdateAbsPosition(aerotechAxis.Number);
-
-                    RaiseAxisStateUpdatedEvent(new AxisStatusArgs(aerotechAxis.Number, absPos, isHomed));
-                }
-                else
-                {
-                    Logger?.Warn(
-                        $"the type {aerotechAxis.AxisType} of the axis {aerotechAxis.Name} does not match the type of {ComponentType.NdriveMP}.");
-                }
+                RaiseAxisStatusUpdatedEvent(new AxisStatusUpdatedArgs(a3200.Number, absPos, isHomed, true));
             }
 
             MaxAnalogInputChannels = InnerAxisInfoCollection.Count * 4;
@@ -210,6 +200,11 @@ namespace APAS.McLib.Aerotech
 
         protected override IReadOnlyList<double> ChildReadAnalogInput()
         {
+            /*
+             * A3200每个驱动器包含4路AI；
+             * 多个A3200串联后，AI编号依次累加，例如0号A3200的AI编号为0~3,1号A3200的AI编号为4~7，以此类推；
+             * 因此从系统配置中的AI标号转换为A3200 AI编号时：A3200 AI编号 = 系统AI编号 % 4
+             */
             var volt = new List<double>();
 
             if (_controllerDiagPacket != null)
@@ -306,11 +301,15 @@ namespace APAS.McLib.Aerotech
 
             for (var i = 0; i < e.Data.Count; i++)
             {
-                RaiseAxisStateUpdatedEvent(
-                    new AxisStatusArgs(i, e.Data[i].PositionFeedback, e.Data[i].AxisStatus.Homed));
-
+                AlarmInfo alarm = null;
                 if (!e.Data[i].AxisFault.None)
-                    RaiseAxisFaultEvent(new MotionFaultArgs(i, e.Data[i].AxisFault.ToString()));
+                {
+                    var code = e.Data[i].AxisFault;
+                    alarm = new AlarmInfo(0, e.Data[i].AxisFault.ToString());
+                }
+
+                RaiseAxisStatusUpdatedEvent(
+                    new AxisStatusUpdatedArgs(i, e.Data[i].PositionFeedback, e.Data[i].AxisStatus.Homed, true, alarm));
             }
         }
 
@@ -318,7 +317,7 @@ namespace APAS.McLib.Aerotech
 
         #region UnitTest
 
-        public void UtFast1D()
+        public void UnitTestProxyFast1D()
         {
             Init();
 

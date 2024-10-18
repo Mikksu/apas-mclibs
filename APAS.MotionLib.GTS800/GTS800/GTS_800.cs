@@ -193,7 +193,7 @@ namespace APAS__MotionLib_Template
             var pos = ChildUpdateAbsPosition(axis);
 
             // 刷新IsHomed状态和 Servo On状态
-            RaiseAxisStateUpdatedEvent(new AxisStatusArgs(axis, pos, true, true));
+            RaiseAxisStatusUpdatedEvent(new AxisStatusUpdatedArgs(axis, pos, true, true));
         }
 
         /// <summary>
@@ -403,7 +403,7 @@ namespace APAS__MotionLib_Template
             var rtn = GT_GetAxisEncPos(_mCardId, (short) axis, pos, 1, out var pClock);
             CommandRtnCheck(rtn, nameof(GT_GetAxisEncPos));
             
-            RaiseAxisStateUpdatedEvent(new AxisStatusArgs(axis, pos[0]));
+            RaiseAxisStatusUpdatedEvent(new AxisStatusUpdatedArgs(axis, pos[0]));
 
             return pos[0];
         }
@@ -888,7 +888,7 @@ namespace APAS__MotionLib_Template
 
                         for (var i = 0; i < AxisCount; i++)
                         {
-                            RaiseAxisStateUpdatedEvent(new AxisStatusArgs(i + 1, pos[i]));
+                            RaiseAxisStatusUpdatedEvent(new AxisStatusUpdatedArgs(i + 1, pos[i]));
                         }
                     }
                     catch (Exception ex)

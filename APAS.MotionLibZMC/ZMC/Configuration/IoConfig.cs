@@ -25,6 +25,14 @@ namespace APAS.MotionLib.ZMC.Configuration
         public int Alarm { get; set; } = -1;
 
         /// <summary>
+        /// 伺服报警DI的有效电平。
+        /// <remarks>
+        /// 当报警DI呈现此电平时，表示驱动器产生了报警。
+        /// </remarks>
+        /// </summary>
+        public bool AlarmLevel { get; set; } = false;
+
+        /// <summary>
         /// 原点sensor接入的输入信号。
         /// </summary>
         public int Org { get; set; } = -1;
