@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
 using APAS.CoreLib.Charting;
@@ -88,7 +89,12 @@ namespace APAS.MotionLib.ACS
             //TODO 4.需要完成函数 ReadStatusImpl()，否则会报NotImplementException异常。
 
             // Connect to the controller
-            _acs.OpenCommEthernetTCP(PortName, BaudRate);
+            if(PortName == "SIMULATOR")
+                _acs.OpenCommSimulator();
+            else if(IPAddress.TryParse(PortName, out var ip))
+                _acs.OpenCommEthernetTCP(ip.ToString(), BaudRate);
+            else
+                throw new ArgumentException($"IP地址格式错误。", nameof(PortName));
 
             //TODO 如何知道有几个轴？
             // Get the total number of the axes in the current configuration
@@ -610,13 +616,14 @@ namespace APAS.MotionLib.ACS
         /// <returns></returns>
         private bool GetIsHomedFlag(int axis)
         {
-            var mflags = _acs.ReadVariable("MFLAGS", from1: axis, to1: axis);
+            // 系统变量MFLAGS(axis).#HOME指示Home完成状态。
+            // 参考
+            
+            var homeBit = _acs.ReadVariable($"MFLAGS({axis}).#HOME");
+            if(homeBit is int val)
+                return val == 1;
 
-            var isHomed = false;
-            if (uint.TryParse(mflags.ToString(), out var ff))
-                isHomed = ((ff & (0x1 << 3)) > 0);
-
-            return isHomed;
+            return false;
         }
 
 
