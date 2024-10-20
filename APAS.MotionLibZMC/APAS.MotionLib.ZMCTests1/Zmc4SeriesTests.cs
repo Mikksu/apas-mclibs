@@ -18,5 +18,14 @@ namespace APAS.MotionLib.ZMC.Tests
             mc.UnitTest(0);
 
 		}
+
+		[TestMethod()]
+		public void ACSMotionTest()
+		{
+			var X = 0;
+			var Y = 1;
+			var acs = new ACS.ACS("10.0.0.100", 701);
+			acs.UnitTestMotion(X);
+		}
 	}
 }

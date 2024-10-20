@@ -47,7 +47,8 @@ namespace APAS.MotionLib.ACS
         /// <param name="baudRate"></param>
         /// <param name="config"></param>
         /// <param name="logger"></param>
-        public ACS(string portName, int baudRate, string config, ILog logger = null) : base(portName, baudRate, logger)
+        public ACS(string portName, int baudRate, string config = "", ILog logger = null) 
+            : base(portName, baudRate, logger)
         {
             var configs = config.Split(',');
             if (configs.Length == 2)
@@ -594,7 +595,7 @@ namespace APAS.MotionLib.ACS
         /// <returns></returns>
         private bool CheckEmbStatus()
         {
-            var respon = _acs.ReadVariable("IsEmbPressed", ProgramBuffer.ACSC_NONE);
+            var respon = _acs.ReadVariable("IsEMO", ProgramBuffer.ACSC_BUFFER_5);
 
             if (int.TryParse(respon.ToString(), out var status))
                 return status != 0;
@@ -621,7 +622,7 @@ namespace APAS.MotionLib.ACS
 
         #endregion
 
-        #region Unit Test
+        #region Unit Test Proxy
 
         public void UnitTestFast1D()
         {
@@ -642,28 +643,28 @@ namespace APAS.MotionLib.ACS
             volt = ReadAIImpl(3);
         }
 
-        public void UnitTestMotion()
+        public void UnitTestMotion(int axis)
         {
             Init();
 
 
-            ServoOn(0);
+            ServoOn(axis);
 
-            if(GetIsHomedFlag(0) == false)
-                Home(0, 0, 0);
+            if(GetIsHomedFlag(axis) == false)
+                Home(axis, 0, 0);
 
-            SetEsDeceleration(0, 500);
+            SetEsDeceleration(axis, 500);
 
 
-            SetAcceleration(0, 100);
-            SetDeceleration(0, 100);
+            SetAcceleration(axis, 100);
+            SetDeceleration(axis, 100);
 
-            SetAcceleration(0, 100);
-            SetDeceleration(0, 100);
-            Move(0, 200, 100);
+            SetAcceleration(axis, 100);
+            SetDeceleration(axis, 100);
+            Move(axis, 200, 100);
 
-            SetAcceleration(0, 500);
-            SetDeceleration(0, 500);
+            SetAcceleration(axis, 500);
+            SetDeceleration(axis, 500);
 
             Task.Run(() =>
             {

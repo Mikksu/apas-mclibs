@@ -73,6 +73,10 @@
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\..\APAS.MotionLib.ACS\ACS\APAS.MotionLib.ACS.csproj">
+      <Project>{c6ab0173-e6cb-401d-a6fa-34f9fe66059f}</Project>
+      <Name>APAS.MotionLib.ACS</Name>
+    </ProjectReference>
     <ProjectReference Include="..\ZMC\APAS.MotionLib.ZMC.csproj">
       <Project>{2E715D2B-8081-4D89-88BE-1FD572E1577B}</Project>
       <Name>APAS.MotionLib.ZMC</Name>
