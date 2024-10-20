@@ -12,6 +12,7 @@
     <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <Deterministic>true</Deterministic>
+    <LangVersion>latestmajor</LangVersion>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
@@ -31,13 +32,11 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="Aerotech.A3200, Version=4.9.2.8, Culture=neutral, PublicKeyToken=478e72719c32735e, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>.\Aerotech.A3200.dll</HintPath>
+    <Reference Include="Aerotech.A3200">
+      <HintPath>..\..\Dependencies\Aerotech\Aerotech.A3200.dll</HintPath>
     </Reference>
-    <Reference Include="Aerotech.Common, Version=3.9.0.5, Culture=neutral, PublicKeyToken=478e72719c32735e, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>.\Aerotech.Common.dll</HintPath>
+    <Reference Include="Aerotech.Common">
+      <HintPath>..\..\Dependencies\Aerotech\Aerotech.Common.dll</HintPath>
     </Reference>
     <Reference Include="APAS.CoreLib">
       <HintPath>..\..\Dependencies\APAS.CoreLib.dll</HintPath>
@@ -62,38 +61,6 @@
   <ItemGroup>
     <Compile Include="AerotechA3200.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="A32Cmplr.dll">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Include="A32Cmplr64.dll">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Include="A32Sys.dll">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Include="A32Sys64.dll">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Include="Aerotech.A3200.dll">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Include="Aerotech.Common.dll">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Include="AerUtilities.dll">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Include="AerUtilities64.dll">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Include="LicenseDecoder.dll">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Include="LicenseDecoder64.dll">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

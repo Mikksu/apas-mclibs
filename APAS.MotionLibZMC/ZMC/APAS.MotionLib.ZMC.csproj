@@ -12,6 +12,7 @@
     <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <Deterministic>true</Deterministic>
+    <LangVersion>latestmajor</LangVersion>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
@@ -77,6 +78,16 @@
   <ItemGroup>
     <Content Include="dependencies\zauxdll.dll" />
     <Content Include="dependencies\zmotion.dll" />
+    <Content Include="zauxdll.dll" />
+    <Content Include="ZMC406初始化脚本\EmergencyInput.bas" />
+    <Content Include="ZMC406初始化脚本\Init.bas" />
+    <Content Include="ZMC406初始化脚本\Scope_test.bas" />
+    <Content Include="ZMC406初始化脚本\ZMC406初始化脚本.rar" />
+    <Content Include="ZMC406初始化脚本\ZMIO300_ADDA.zpj" />
+    <Content Include="ZMC406初始化脚本\ZMIO300_ADDA_Init.bas" />
+    <None Include="zmotion.dll">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

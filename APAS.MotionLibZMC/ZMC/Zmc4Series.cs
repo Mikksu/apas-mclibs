@@ -1,6 +1,5 @@
 ﻿using APAS.McLib.Sdk;
 using APAS.McLib.Sdk.Core;
-using APAS.McLib.Sdk.Exceptions;
 using APAS.MotionLib.ZMC.Configuration;
 using cszmcaux;
 using log4net;
@@ -33,7 +32,9 @@ namespace APAS.MotionLib.ZMC
         private IntPtr _hMc;
         private readonly string _configFileAxis = "Zmc4SeriesConf.json";
         private readonly McConfig _mcConfig;
-        private CancellationTokenSource _cts;
+        private int _maxAxis;
+        private int _maxAO;
+        private int _maxAI;
 
         #endregion
 
@@ -63,12 +64,7 @@ namespace APAS.MotionLib.ZMC
             var paramPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, _configFileAxis);
             ReadParamFile(paramPath, ref _mcConfig);
 
-            //TODO 此处初始化控制器参数；如果下列参数动态读取，则可在ChildInit()函数中赋值。
-            AxisCount = 6; // 最大轴数
-            MaxAnalogInputChannels = _mcConfig.Ain.MaxChannel; // 最大模拟量输入通道数
-            MaxAnalogOutputChannels = 0; // 最大模拟量输出通道数
-            MaxDigitalInputChannels = 24; // 最大数字量输入通道数
-            MaxDigitalOutputChannels = 12; // 最大数字量输出通道数
+            //TODO 此处初始化控制器参数；如果下列参数动态读取，则可在InitImpl()函数中赋值。
         }
 
         #endregion
@@ -78,7 +74,7 @@ namespace APAS.MotionLib.ZMC
         /// <summary>
         /// 初始化指定轴卡。
         /// </summary>
-        protected override void ChildInit()
+        protected override void InitImpl()
         {
             //TODO 1.初始化运动控制器对象，例如凌华轴卡、固高轴卡等。
             // 例如：初始化固高轴卡：gts.mc.GT_Open(portName, 1);
@@ -89,7 +85,7 @@ namespace APAS.MotionLib.ZMC
             // 注意：InnerAxisInfoCollection 已在基类的构造函数中初始化
             // 例如： InnerAxisInfoCollection.Add(new AxisInfo(1, new Version(1, 0, 0)));
 
-            //TODO 4.需要完成函数 ChildUpdateStatus()，否则会报NotImplementException异常。
+            //TODO 4.需要完成函数 ReadStatusImpl()，否则会报NotImplementException异常。
 
             /* var rtn = zmcaux.ZAux_SearchEth(PortName, 100);
              CommandRtnCheck(rtn, "ZAux_SearchEth");*/
@@ -100,21 +96,27 @@ namespace APAS.MotionLib.ZMC
             // 检查轴卡型号并更新轴总数
             var model = SendBasicCommand("?control");
             if (model.StartsWith("406"))
-                AxisCount = 6;
+            {
+                _maxAxis = 6;
+                _maxAO = 2;
+                _maxAI = 2;
+            }
             else if (model.StartsWith("412"))
-                AxisCount = 12;
+            {
+                _maxAxis = 12;
+                _maxAO = 2;
+                _maxAI = 2;
+            }
 
             // 如果上次程序没有退出，可能还有正在运动的轴，
             // 先执行一次急停，确保左右轴均处于停止状态；否则下面的ChildServoOn异常。
-            ChildEmergencyStop();
+            EStopImpl();
 
             //ApplyConfig(_hMc, _mcConfig);
 
             // Servo On 所有轴
-            for (var i = 0; i < AxisCount; i++)
-                ChildServoOn(i);
-
-            StartBackgroundTask();
+            for (var i = 0; i < _maxAxis; i++)
+                ServoOnImpl(i);
         }
 
         /// <summary>
@@ -122,12 +124,12 @@ namespace APAS.MotionLib.ZMC
         /// </summary>
         /// <param name="axis">轴号</param>
         /// <param name="acc">加速度值</param>
-        protected override void ChildSetAcceleration(int axis, double acc)
+        protected override void SetAccImpl(int axis, double acc)
         {
-            AxisMovePreparation(axis);
+            PreMove(axis);
 
             var rtn = zmcaux.ZAux_Direct_SetAccel(_hMc, axis, (float)acc);
-            CommandRtnCheck(rtn, "ZAux_Direct_SetAccel  in ChildSetAcceleration");
+            CommandRtnCheck(rtn, "ZAux_Direct_SetAccel  in SetAccImpl");
         }
 
         /// <summary>
@@ -135,20 +137,20 @@ namespace APAS.MotionLib.ZMC
         /// </summary>
         /// <param name="axis">轴号</param>
         /// <param name="dec">减速度值</param>
-        protected override void ChildSetDeceleration(int axis, double dec)
+        protected override void SetDecImpl(int axis, double dec)
         {
-            AxisMovePreparation(axis);
+            PreMove(axis);
 
             var rtn = zmcaux.ZAux_Direct_SetDecel(_hMc, axis, (float)dec);
-            CommandRtnCheck(rtn, "ZAux_Direct_SetDecel  in ChildSetAcceleration");
+            CommandRtnCheck(rtn, "ZAux_Direct_SetDecel  in SetAccImpl");
         }
 
-        protected override void ChildSetEsDeceleration(int axis, double dec)
+        protected override void SetEsDecImpl(int axis, double dec)
         {
-            AxisMovePreparation(axis);
+            PreMove(axis);
 
             var rtn = zmcaux.ZAux_Direct_SetDecel(_hMc, axis, (float)dec);
-            CommandRtnCheck(rtn, "ZAux_Direct_SetDecel  in ChildSetAcceleration");
+            CommandRtnCheck(rtn, "ZAux_Direct_SetDecel  in SetAccImpl");
         }
 
         /// <summary>
@@ -157,7 +159,7 @@ namespace APAS.MotionLib.ZMC
         /// <param name="axis">轴号</param>
         /// <param name="hiSpeed">快速找机械原点的速度值。如不适用请忽略。</param>
         /// <param name="creepSpeed">找到机械原点后返回零位的爬行速度。如不适用请忽略。</param>
-        protected override void ChildHome(int axis, double hiSpeed, double creepSpeed)
+        protected override void HomeImpl(int axis, double hiSpeed, double creepSpeed)
         {
             /*
              * 耗时操作。当执行操作时，请轮询轴状态，并调用 RaiseAxisStatusUpdatedEvent(new AxisStatusUpdatedArgs(axis, xxx)); 
@@ -171,7 +173,7 @@ namespace APAS.MotionLib.ZMC
             if (homeParam == null || movParam == null)
                 throw new NullReferenceException($"unable to find the config of the axis ({axis}).");
 
-            AxisMovePreparation(axis);
+            PreMove(axis);
 
             // 将该轴标记为未Home
             rtn = zmcaux.ZAux_Modbus_Set0x(_hMc, (ushort)axis, 1, new byte[] { 0 });
@@ -194,47 +196,47 @@ namespace APAS.MotionLib.ZMC
 
             rtn = zmcaux.ZAux_Direct_Single_Datum(_hMc, axis, homeParam.Mode);
             CommandRtnCheck(rtn, nameof(zmcaux.ZAux_Direct_Single_Datum));
+        }
 
-            Thread.Sleep(100);
-            float position = 0;
-            do
+        protected override bool CheckHomeDoneImpl(int axis)
+        {
+            var status = 0;
+            var rtn = zmcaux.ZAux_Direct_GetIfIdle(_hMc, axis, ref status);
+            CommandRtnCheck(rtn, nameof(zmcaux.ZAux_Direct_GetIfIdle));
+
+            var isHomeDone = status == 0;
+            if (isHomeDone)
             {
-                rtn = zmcaux.ZAux_Direct_GetIfIdle(_hMc, axis, ref axisMoveStatus);
-                CommandRtnCheck(rtn, nameof(zmcaux.ZAux_Direct_GetIfIdle));
+                var isAlarm = CheckAlarm(axis, out var alarm);
+                if (!isAlarm)
+                {
+                    var movParam = FindAxisConfig(axis, _mcConfig)?.Motion;
+                    if (movParam == null)
+                        throw new NullReferenceException($"unable to find the config of the axis ({axis}).");
 
-                rtn = zmcaux.ZAux_Direct_GetMpos(_hMc, axis, ref position);
-                CommandRtnCheck(rtn, nameof(zmcaux.ZAux_Direct_GetMpos));
+                    // 清空位置
+                    rtn = zmcaux.ZAux_Direct_SetMpos(_hMc, axis, 0);
+                    CommandRtnCheck(rtn, nameof(zmcaux.ZAux_Direct_SetMpos));
 
-                // 背景线程中同时也在刷新绝对坐标，此处可以不刷新；
-                // 增加该行代码可提高UI上刷新坐标的速度。
-                // RaiseAxisStatusUpdatedEvent(new AxisStatusUpdatedArgs(axis, position));
+                    rtn = zmcaux.ZAux_Direct_SetDpos(_hMc, axis, 0);
+                    CommandRtnCheck(rtn, nameof(zmcaux.ZAux_Direct_SetDpos));
 
-                Thread.Sleep(10);
-            } while (axisMoveStatus == 0);
+                    // 将该轴标记为已Home
+                    rtn = zmcaux.ZAux_Modbus_Set0x(_hMc, (ushort)axis, 1, new byte[] { 1 });
+                    CommandRtnCheck(rtn, nameof(zmcaux.ZAux_Modbus_Set0x));
 
-            Thread.Sleep(100);
-            AxisStatueCheck(_hMc, axis);
+                    // 将加速度设置为Move使用的加速度
+                    rtn = zmcaux.ZAux_Direct_SetAccel(_hMc, axis, (float)movParam.Acc);
+                    CommandRtnCheck(rtn, nameof(zmcaux.ZAux_Direct_SetAccel));
 
-            // 清空位置
-            rtn = zmcaux.ZAux_Direct_SetMpos(_hMc, axis, 0);
-            CommandRtnCheck(rtn, nameof(zmcaux.ZAux_Direct_SetMpos));
+                    rtn = zmcaux.ZAux_Direct_SetDecel(_hMc, axis, (float)movParam.Dec);
+                    CommandRtnCheck(rtn, nameof(zmcaux.ZAux_Direct_SetDecel));
 
-            rtn = zmcaux.ZAux_Direct_SetDpos(_hMc, axis, 0);
-            CommandRtnCheck(rtn, nameof(zmcaux.ZAux_Direct_SetDpos));
+                    return true;
+                }
+            }
 
-            // 将该轴标记为已Home
-            rtn = zmcaux.ZAux_Modbus_Set0x(_hMc, (ushort)axis, 1, new byte[] { 1 });
-            CommandRtnCheck(rtn, nameof(zmcaux.ZAux_Modbus_Set0x));
-
-            // 将加速度设置为Move使用的加速度
-            rtn = zmcaux.ZAux_Direct_SetAccel(_hMc, axis, (float)movParam.Acc);
-            CommandRtnCheck(rtn, nameof(zmcaux.ZAux_Direct_SetAccel));
-
-            rtn = zmcaux.ZAux_Direct_SetDecel(_hMc, axis, (float)movParam.Dec);
-            CommandRtnCheck(rtn, nameof(zmcaux.ZAux_Direct_SetDecel));
-
-            RaiseAxisStatusUpdatedEvent(new AxisStatusUpdatedArgs(axis, 0, true));
-
+            return false;
         }
 
         /// <summary>
@@ -244,10 +246,7 @@ namespace APAS.MotionLib.ZMC
         /// <param name="speed">移动速度。该速度根据APAS主程序的配置文件计算得到。计算方法为MaxSpeed * 速度百分比。</param>
         /// <param name="distance">相对移动的距离。该距离已被APAS主程序转换为轴卡对应的实际单位。例如对于脉冲方式，
         /// 该值已转换为步数；对于伺服系统，该值已转换为实际距离。</param>
-        /// <param name="fastMoveRequested">是否启用快速移动模式。如不适用请忽略。</param>
-        /// <param name="microstepRate">当启用快速移动模式时的驱动器细分比值。如不适用请忽略。</param>
-        protected override void ChildMove(int axis, double speed, double distance,
-            bool fastMoveRequested = false, double microstepRate = 0)
+        protected override void MoveImpl(int axis, double speed, double distance)
         {
             /*
              * 耗时操作。当执行操作时，请轮询轴状态，并调用 RaiseAxisStatusUpdatedEvent(new AxisStatusUpdatedArgs(axis, xxx)); 
@@ -255,7 +254,7 @@ namespace APAS.MotionLib.ZMC
             */
             var axisMoveStatus = 0;
 
-            AxisMovePreparation(axis);
+            PreMove(axis);
 
             var rtn = zmcaux.ZAux_Direct_SetSpeed(_hMc, axis, (float)speed);
             CommandRtnCheck(rtn, nameof(zmcaux.ZAux_Direct_SetSpeed));
@@ -263,103 +262,41 @@ namespace APAS.MotionLib.ZMC
             rtn = zmcaux.ZAux_Direct_Single_Move(_hMc, axis, (float)distance);
 
             CommandRtnCheck(rtn, nameof(zmcaux.ZAux_Direct_Single_Move));
-
-            //Thread.Sleep(100);
-            float position = 0;
-
-            do
-            {
-                rtn = zmcaux.ZAux_Direct_GetIfIdle(_hMc, axis, ref axisMoveStatus);
-                CommandRtnCheck(rtn, nameof(zmcaux.ZAux_Direct_GetIfIdle));
-
-                rtn = zmcaux.ZAux_Direct_GetMpos(_hMc, axis, ref position);
-                CommandRtnCheck(rtn, nameof(zmcaux.ZAux_Direct_GetMpos));
-
-                // 背景线程中同时也在刷新绝对坐标，此处可以不刷新；
-                // 增加该行代码可提高UI上刷新坐标的速度。
-                RaiseAxisStatusUpdatedEvent(new AxisStatusUpdatedArgs(axis, position));
-                Thread.Sleep(10);
-            } while (axisMoveStatus == 0);
-            //Thread.Sleep(100);
-
-            AxisStatueCheck(_hMc, axis);
-
-            rtn = zmcaux.ZAux_Direct_GetMpos(_hMc, axis, ref position);
-            CommandRtnCheck(rtn, nameof(zmcaux.ZAux_Direct_GetMpos));
-            RaiseAxisStatusUpdatedEvent(new AxisStatusUpdatedArgs(axis, (double)position));
         }
 
-
-        /// <summary>
-        /// 移动指定轴到绝对位置（绝对移动模式）。
-        /// </summary>
-        /// <param name="axis">轴号</param>
-        /// <param name="speed">移动速度</param>
-        /// <param name="position">绝对目标位置</param>
-        /// <param name="fastMoveRequested">是否启用快速移动模式。如不适用请忽略。</param>
-        /// <param name="microstepRate">当启用快速移动模式时的驱动器细分比值。如不适用请忽略。</param>
-        protected override void ChildMoveAbs(int axis, double speed, double position, bool fastMoveRequested = false,
-            double microstepRate = 0)
+        protected override bool CheckMotionDoneImpl(int axis)
         {
-            var axisMoveStatus = 0;
+            var idleFlag = 0;
 
-            AxisMovePreparation(axis);
-
-            var rtn = zmcaux.ZAux_Direct_SetSpeed(_hMc, axis, (float)speed);
-            CommandRtnCheck(rtn, nameof(zmcaux.ZAux_Direct_SetSpeed));
-
-            rtn = zmcaux.ZAux_Direct_Single_MoveAbs(_hMc, axis, (float)position);
-
-            CommandRtnCheck(rtn, nameof(zmcaux.ZAux_Direct_Single_MoveAbs));
-
-            Thread.Sleep(100);
-            float pos = 0;
-
-            do
-            {
-                rtn = zmcaux.ZAux_Direct_GetIfIdle(_hMc, axis, ref axisMoveStatus);
-                CommandRtnCheck(rtn, nameof(zmcaux.ZAux_Direct_GetIfIdle));
-
-                rtn = zmcaux.ZAux_Direct_GetMpos(_hMc, axis, ref pos);
-                CommandRtnCheck(rtn, nameof(zmcaux.ZAux_Direct_GetMpos));
-
-                RaiseAxisStatusUpdatedEvent(new AxisStatusUpdatedArgs(axis, (double)pos));
-                Thread.Sleep(10);
-            } while (axisMoveStatus == 0);
-
-            Thread.Sleep(100);
-
-            AxisStatueCheck(_hMc, axis);
-            rtn = zmcaux.ZAux_Direct_GetMpos(_hMc, axis, ref pos);
-            CommandRtnCheck(rtn, nameof(zmcaux.ZAux_Direct_GetMpos));
-
-            RaiseAxisStatusUpdatedEvent(new AxisStatusUpdatedArgs(axis, (double)pos));
+            var rtn = zmcaux.ZAux_Direct_GetIfIdle(_hMc, axis, ref idleFlag);
+            CommandRtnCheck(rtn, nameof(zmcaux.ZAux_Direct_GetIfIdle));
+            return idleFlag == 1;
         }
 
         /// <summary>
         /// 开启励磁。
         /// </summary>
         /// <param name="axis">轴号</param>
-        protected override void ChildServoOn(int axis)
+        protected override void ServoOnImpl(int axis)
         {
             if (_mcConfig.Axes[axis].Io.ServoOn <= -1) 
                 return;
 
-            AxisMovePreparation(axis, false);
-            ChildSetDigitalOutput(_mcConfig.Axes[axis].Io.ServoOn, true);
+            PreMove(axis, false);
+            SetDOImpl(_mcConfig.Axes[axis].Io.ServoOn, true);
         }
 
         /// <summary>
         /// 关闭励磁。
         /// </summary>
         /// <param name="axis">轴号</param>
-        protected override void ChildServoOff(int axis)
+        protected override void ServoOffImpl(int axis)
         {
             if (_mcConfig.Axes[axis].Io.ServoOn <= -1)
                 return;
 
-            AxisMovePreparation(axis, false);
-            ChildSetDigitalOutput(_mcConfig.Axes[axis].Io.ServoOn, false);
+            PreMove(axis, false);
+            SetDOImpl(_mcConfig.Axes[axis].Io.ServoOn, false);
         }
 
         /// <summary>
@@ -367,7 +304,7 @@ namespace APAS.MotionLib.ZMC
         /// </summary>
         /// <param name="axis">轴号</param>
         /// <returns>最新绝对位置</returns>
-        protected override double ChildUpdateAbsPosition(int axis)
+        protected override double ReadPosImpl(int axis)
         {
             //pClock 读取控制器时钟，默认值为：NULL，即不用读取控制器时钟
             //count  读取的轴数，默认为 1。正整数。
@@ -377,64 +314,96 @@ namespace APAS.MotionLib.ZMC
             return pos;
         }
 
-        /// <summary>
-        /// 更新指定轴状态。
-        /// <para>注意：请在该函数调用RaiseAxisStateUpdatedEvent()函数，以通知APAS主程序当前轴的状态已更新。</para>
-        /// </summary>
-        /// <param name="axis">轴号</param>
-        protected override void ChildUpdateStatus(int axis)
+        protected override StatusInfo ReadStatusImpl(int axis)
         {
-            // 注意:
-            // 1. 读取完状态后请调用 RaiseAxisStatusUpdatedEvent 函数。
-            // 2. 实例化 AxisStatusUpdatedArgs 时请传递所有参数。
-            // RaiseAxisStatusUpdatedEvent(new AxisStatusUpdatedArgs(int.MinValue, double.NaN, false, false));
+            // 检查轴是否正忙
+            var busyFlag = 0;
+            var rtn = zmcaux.ZAux_Direct_GetIfIdle(_hMc, axis, ref busyFlag);
+            CommandRtnCheck(rtn, nameof(zmcaux.ZAux_Direct_GetIfIdle));
+            var isBusy = busyFlag == 0;
 
-            var isHomed = new byte[1];
-            var rtn = zmcaux.ZAux_Modbus_Get0x(_hMc, (ushort)axis, 1, isHomed);
+            var isInp = !isBusy;
+
+            // 检查是否已回零
+            var homeFlag = new byte[1];
+            rtn = zmcaux.ZAux_Modbus_Get0x(_hMc, (ushort)axis, 1, homeFlag);
             CommandRtnCheck(rtn, nameof(zmcaux.ZAux_Modbus_Get0x));
-            
-            // 读取伺服报警
-            AlarmInfo alarmInfo = null;
-            var diAlarm = 0; 
-            rtn = zmcaux.ZAux_Direct_GetAlmIn(_hMc, (ushort)axis, ref diAlarm); // 获取伺服报警DI编号
-            CommandRtnCheck(rtn, nameof(zmcaux.ZAux_Modbus_Get0x));
-            var isAlarmed = ChildReadDigitalInput(diAlarm); // 读取报警DI
-            if (isAlarmed ==  _mcConfig.Axes[axis].Io.AlarmLevel)
-                alarmInfo = new AlarmInfo(0, "伺服驱动器报警，请检查驱动器报警信息。"); // 如果报警DI电平为激活电平，则创建报警信息。
-            
-            
-            var absPos = ChildUpdateAbsPosition(axis);
-            var isServoOn = ChildReadDigitalOutput(_mcConfig.Axes[axis].Io.ServoOn);
-            RaiseAxisStatusUpdatedEvent(new AxisStatusUpdatedArgs(axis, absPos, isHomed[0] != 0, isServoOn, alarmInfo));
+            var isHomed = homeFlag[0] == 1;
+
+            // 查询使能状态
+            var servoFlag = 0;
+            rtn = zmcaux.ZAux_Direct_GetAxisEnable(_hMc, axis, ref servoFlag);
+            CommandRtnCheck(rtn, nameof(zmcaux.ZAux_Direct_GetAxisEnable));
+            var isServoOn = servoFlag == 1;
+
+            // 查询是否报警
+            var isAlarm = CheckAlarm(axis, out var alarm);
+            return new StatusInfo(isBusy, isInp, isHomed, isServoOn, [alarm]);
         }
 
-        /// <summary>
-        /// 更新所有轴状态。
-        /// <see cref="ChildUpdateStatus(int)"/>
-        /// </summary>
-        protected override void ChildUpdateStatus()
+        private bool CheckAlarm(int axis, out AlarmInfo alarm)
         {
-            // 注意:
-            // 1. 读取完状态后请循环调用 RaiseAxisStatusUpdatedEvent 函数，
-            //    例如对于 8 轴轴卡，请调用针对8个轴调用 8 次 RaiseAxisStatusUpdatedEvent 函数。
-            // 2. 实例化 AxisStatusUpdatedArgs 时请传递所有参数。
-            //// RaiseAxisStatusUpdatedEvent(new AxisStatusUpdatedArgs(int.MinValue, double.NaN, false, false));
-            // 检查IsHomed状态
-            /* var isHomed = new byte[AxisCount];
-             var rtn = zmcaux.ZAux_Modbus_Get0x(_hMc, (ushort)0, (ushort)AxisCount, isHomed);
-             CommandRtnCheck(rtn, nameof(zmcaux.ZAux_Modbus_Get0x));*/
+            alarm = null;
 
-            for (var i = 0; i < AxisCount; i++)
-            {
-                ChildUpdateStatus(i);
-            }
+            // 检查急停
+            if (CheckEmbStatus())
+                throw new Exception($"紧急停止");
+
+            // 若非急停，检查轴状态
+            var errCode = 0;
+            var errInfo = string.Empty;
+
+            //int rtn = zmcaux.ZAux_Direct_GetAxisStatus(_hMc, axisIndex, ref reason);
+            var rtn = zmcaux.ZAux_Direct_GetAxisStopReason(_hMc, axis, ref errCode);
+            CommandRtnCheck(rtn, nameof(zmcaux.ZAux_Direct_GetAxisStopReason));
+
+            if (errCode == 0)
+                return false;
+            else if ((errCode & 0x2) > 0)
+                errInfo = "随动误差超限报警";
+            else if ((errCode & 0x4) > 0)
+                errInfo = "与远程轴通讯错误";
+            else if ((errCode & 0x8) > 0)
+                errInfo = "远程驱动器报错";
+            else if ((errCode & 0x10) > 0)
+                errInfo = "正向硬限位";
+            else if ((errCode & 0x20) > 0)
+                errInfo = "反向硬限位";
+            else if ((errCode & 0x40) > 0)
+                errInfo = "回原点中";
+            else if ((errCode & 0x80) > 0)
+                errInfo = "随动误差超限报警";
+            else if ((errCode & 0x100) > 0)
+                errInfo = "随动误差超限出错";
+            else if ((errCode & 0x200) > 0)
+                errInfo = "超过正向软限位";
+            else if ((errCode & 0x400) > 0)
+                errInfo = "超过负向软限位";
+            //else if ((errCode & 0x800) > 0)
+                // 人为停止
+            else if ((errCode & 0x1000) > 0)
+                errInfo = "脉冲频率超过MAX_SPEED限制";
+            else if ((errCode & 0x4000) > 0)
+                errInfo = "机械手指令坐标错误";
+            else if ((errCode & 0x40000) > 0)
+                errInfo = "电源异常";
+            else if ((errCode & 0x200000) > 0)
+                errInfo = "运动中触发特殊运动指令失败";
+            else if ((errCode & 0x400000) > 0)
+                errInfo = "报警信号输入";
+            else if ((errCode & 0x800000) > 0)
+                errInfo = "轴进入暂停状态";
+
+            alarm = new AlarmInfo(errCode, errInfo);
+            return true;
         }
+
 
         /// <summary>
         /// 清除指定轴的错误。
         /// </summary>
         /// <param name="axis">轴号</param>
-        protected override void ChildResetFault(int axis)
+        protected override void ResetAlarmImpl(int axis)
         {
             var axisConf = FindAxisConfig(axis, _mcConfig);
 
@@ -455,17 +424,10 @@ namespace APAS.MotionLib.ZMC
         /// </summary>
         /// <param name="port">端口号</param>
         /// <param name="isOn">是否设置为有效电平</param>
-        protected override void ChildSetDigitalOutput(int port, bool isOn)
+        protected override void SetDOImpl(int port, bool isOn)
         {
-
-            int rtn;
-            if (isOn)
-                rtn = zmcaux.ZAux_Direct_SetOp(_hMc, port, 1);
-            else
-                rtn = zmcaux.ZAux_Direct_SetOp(_hMc, port, 0);
-
+            var rtn = zmcaux.ZAux_Direct_SetOp(_hMc, port, isOn ? (uint)1 : (uint)0);
             CommandRtnCheck(rtn, nameof(zmcaux.ZAux_Direct_SetOp));
-
         }
 
         /// <summary>
@@ -473,7 +435,7 @@ namespace APAS.MotionLib.ZMC
         /// </summary>
         /// <param name="port">端口号</param>
         /// <returns>端口状态。True表示端口输出为有效电平。</returns>
-        protected override bool ChildReadDigitalOutput(int port)
+        protected override bool ReadDOImpl(int port)
         {
             // 如果端口号为-1，则始终给true信号。
             if (port < 0)
@@ -490,7 +452,7 @@ namespace APAS.MotionLib.ZMC
         /// 读取所有数字输出端口。
         /// </summary>
         /// <returns>端口状态列表。True表示端口输出为有效电平。</returns>
-        protected override IReadOnlyList<bool> ChildReadDigitalOutput()
+        protected override bool[] ReadDOImpl()
         {
             var outputStatus = new uint[1];
             var rtn = zmcaux.ZAux_Direct_GetOutMulti(_hMc, 0, 15, outputStatus);
@@ -509,7 +471,7 @@ namespace APAS.MotionLib.ZMC
         /// </summary>
         /// <param name="port">端口号</param>
         /// <returns>端口状态。True表示端口输出为有效电平。</returns>
-        protected override bool ChildReadDigitalInput(int port)
+        protected override bool ReadDIImpl(int port)
         {
             uint pivalue = 0;
             var rtn = zmcaux.ZAux_Direct_GetIn(_hMc, port, ref pivalue);
@@ -522,7 +484,7 @@ namespace APAS.MotionLib.ZMC
         /// 读取所有数字输入端口。
         /// </summary>
         /// <returns>端口状态列表。True表示端口输出为有效电平。</returns>
-        protected override IReadOnlyList<bool> ChildReadDigitalInput()
+        protected override bool[] ReadDIImpl()
         {
             var outputStatus = new int[1];
             var rtn = zmcaux.ZAux_Direct_GetInMulti(_hMc, 0, 15, outputStatus);
@@ -545,11 +507,11 @@ namespace APAS.MotionLib.ZMC
         /// 读取所有模拟输入端口的电压值。
         /// </summary>
         /// <returns>电压值列表。</returns>
-        protected override IReadOnlyList<double> ChildReadAnalogInput()
+        protected override double[] ReadAIImpl()
         {
             var values = new List<double>();
 
-            for (var i = 0; i < MaxAnalogInputChannels; i++)
+            for (var i = 0; i < _maxAI; i++)
             {
                 var val = 0.0f;
                 zmcaux.ZAux_Direct_GetAD(_hMc, _mcConfig.Ain.IndexStart + i, ref val);
@@ -558,7 +520,7 @@ namespace APAS.MotionLib.ZMC
                 values.Add(ConvertAdcRawToRealworld(param, val));
             }
 
-            return values;
+            return values.ToArray();
         }
 
         /// <summary>
@@ -566,7 +528,7 @@ namespace APAS.MotionLib.ZMC
         /// </summary>
         /// <param name="port">端口号</param>
         /// <returns></returns>
-        protected override double ChildReadAnalogInput(int port)
+        protected override double ReadAIImpl(int port)
         {
             var val = 0.0f;
             zmcaux.ZAux_Direct_GetAD(_hMc, _mcConfig.Ain.IndexStart + port, ref val);
@@ -578,7 +540,7 @@ namespace APAS.MotionLib.ZMC
         /// 读取所有模拟输出端口的电压值。
         /// </summary>
         /// <returns>电压值列表。</returns>
-        protected override IReadOnlyList<double> ChildReadAnalogOutput()
+        protected override double[] ReadAOImpl()
         {
             throw new NotSupportedException();
         }
@@ -588,7 +550,7 @@ namespace APAS.MotionLib.ZMC
         /// </summary>
         /// <param name="port">端口号</param>
         /// <returns></returns>
-        protected override double ChildReadAnalogOutput(int port)
+        protected override double ReadAOImpl(int port)
         {
             throw new NotSupportedException();
         }
@@ -598,25 +560,7 @@ namespace APAS.MotionLib.ZMC
         /// </summary>
         /// <param name="port">端口号</param>
         /// <param name="value">电压值</param>
-        protected override void ChildSetAnalogOutput(int port, double value)
-        {
-            throw new NotSupportedException();
-        }
-
-        /// <summary>
-        /// 打开指定模拟输出端口的输出。
-        /// </summary>
-        /// <param name="port">端口号</param>
-        protected override void ChildAnalogOutputOn(int port)
-        {
-            throw new NotSupportedException();
-        }
-
-        /// <summary>
-        /// 关闭指定模拟输出端口的输出。
-        /// </summary>
-        /// <param name="port">端口号</param>
-        protected override void ChildAnalogOutputOff(int port)
+        protected override void SetAOImpl(int port, double value)
         {
             throw new NotSupportedException();
         }
@@ -632,7 +576,7 @@ namespace APAS.MotionLib.ZMC
         /// <param name="vth">阈值电压</param>
         /// <param name="distance">最大移动距离</param>
         /// <param name="speed">移动速度</param>
-        protected override void ChildAutoTouch(int axis, int analogInputPort, double vth, double distance, double speed)
+        protected override void AutoTouchImpl(int axis, int analogInputPort, double vth, double distance, double speed)
         {
             throw new NotSupportedException();
         }
@@ -644,12 +588,12 @@ namespace APAS.MotionLib.ZMC
         /// <param name="range">扫描范围</param>
         /// <param name="interval">反馈信号采样间隔</param>
         /// <param name="speed">移动速度</param>
-        /// <param name="analogCapture">反馈信号捕获端口</param>
+        /// <param name="capture">反馈信号捕获端口</param>
         /// <param name="scanResult">扫描结果列表（X:位置，Y:反馈信号）</param>
-        protected override void ChildStartFast1D(int axis, double range, double interval, double speed,
-            int analogCapture, out IEnumerable<Point2D> scanResult)
+        protected override void Fast1DImpl(int axis, double range, double interval, double speed,
+            int capture, out Point2D[] scanResult)
         {
-            ChildStartFast1D(axis, range, interval, speed, analogCapture, out scanResult, -1, out _);
+            Fast1DImpl(axis, range, interval, speed, capture, out scanResult, -1, out _);
         }
 
         /// <summary>
@@ -659,13 +603,12 @@ namespace APAS.MotionLib.ZMC
         /// <param name="range">扫描范围</param>
         /// <param name="interval">第1路反馈信号采样间隔</param>
         /// <param name="speed">移动速度</param>
-        /// <param name="analogCapture">反馈信号捕获端口</param>
+        /// <param name="capture">反馈信号捕获端口</param>
         /// <param name="scanResult">第1路扫描结果列表（X:位置，Y:反馈信号）</param>
-        /// <param name="analogCapture2">第2路反馈信号采样间隔</param>
+        /// <param name="capture2">第2路反馈信号采样间隔</param>
         /// <param name="scanResult2">第2路扫描结果列表（X:位置，Y:反馈信号）</param>
-        protected override void ChildStartFast1D(int axis, double range, double interval, double speed,
-            int analogCapture, out IEnumerable<Point2D> scanResult, int analogCapture2,
-            out IEnumerable<Point2D> scanResult2)
+        protected override void Fast1DImpl(int axis, double range, double interval, double speed,
+            int capture, out Point2D[] scanResult, int capture2, out Point2D[] scanResult2)
         {
             scanResult = null;
             scanResult2 = null;
@@ -676,11 +619,11 @@ namespace APAS.MotionLib.ZMC
             var respon = new StringBuilder();
 
             // 从配置文件中读取参数，以将ADC回读值转换为真实值
-            var adcParam1 = _mcConfig.Ain.Param.FirstOrDefault(x => x.Channel == analogCapture);
-            var adcParam2 = _mcConfig.Ain.Param.FirstOrDefault(x => x.Channel == analogCapture2);
+            var adcParam1 = _mcConfig.Ain.Param.FirstOrDefault(x => x.Channel == capture);
+            var adcParam2 = _mcConfig.Ain.Param.FirstOrDefault(x => x.Channel == capture2);
 
             // 总采样点数，注意此值必须为2的倍数
-            var totalSamplingPoints = _mcConfig.Scope.Depth * (analogCapture2 < 0 ? 2 : 3);
+            var totalSamplingPoints = _mcConfig.Scope.Depth * (capture2 < 0 ? 2 : 3);
             /*if (totalSamplingPoints < 30000)
                 totalSamplingPoints = 30000;*/
 
@@ -691,18 +634,18 @@ namespace APAS.MotionLib.ZMC
                 samplingIntervalMs = 1;
 
             var command = "";
-            if (analogCapture2 < 0)
+            if (capture2 < 0)
             {
                 command =
                     $"SCOPE(ON,{samplingIntervalMs},0,{totalSamplingPoints},MPOS({axis})," +
-                    $"AIN({analogCapture + _mcConfig.Ain.IndexStart}))";
+                    $"AIN({capture + _mcConfig.Ain.IndexStart}))";
             }
             else
             {
                 command =
                     $"SCOPE(ON,{samplingIntervalMs},0,{totalSamplingPoints},MPOS({axis})," +
-                    $"AIN({analogCapture + _mcConfig.Ain.IndexStart})," +
-                    $"AIN({analogCapture2 + _mcConfig.Ain.IndexStart}))";
+                    $"AIN({capture + _mcConfig.Ain.IndexStart})," +
+                    $"AIN({capture2 + _mcConfig.Ain.IndexStart}))";
 
             }
 
@@ -725,7 +668,7 @@ namespace APAS.MotionLib.ZMC
             zmcaux.ZAux_Direct_GetTable(_hMc, 0, pCnt, pBufX);
             zmcaux.ZAux_Direct_GetTable(_hMc, startAin1, pCnt, pBufY1);
 
-            if (analogCapture2 >= 0)
+            if (capture2 >= 0)
                 zmcaux.ZAux_Direct_GetTable(_hMc, startAin2, pCnt, pBufY2);
 
             // AIN采样值所在的位置
@@ -734,45 +677,28 @@ namespace APAS.MotionLib.ZMC
             {
                 point2Ds1.Add(new Point2D(pBufX[i], ConvertAdcRawToRealworld(adcParam1, pBufY1[i])));
 
-                if (analogCapture2 >= 0)
+                if (capture2 >= 0)
                     point2Ds2.Add(new Point2D(pBufX[i], ConvertAdcRawToRealworld(adcParam1, pBufY2[i])));
             }
 
             var distinctItems1 = point2Ds1.GroupBy(p => p.X).Select(p => p.First()).OrderBy(p => p.X);
-            scanResult = distinctItems1;
+            scanResult = distinctItems1.ToArray();
 
-            if (analogCapture2 >= 0)
+            if (capture2 >= 0)
             {
                 var distinctItems2 = point2Ds2.GroupBy(p => p.X).Select(p => p.First()).OrderBy(p => p.X);
-                scanResult2 = distinctItems2;
+                scanResult2 = distinctItems2.ToArray();
             }
         }
 
-        /// <summary>
-        /// 执行快速盲扫。
-        /// </summary>
-        /// <param name="hAxis">水平轴轴号</param>
-        /// <param name="vAxis">垂直轴轴号</param>
-        /// <param name="range">扫描区域（正方形）的边长</param>
-        /// <param name="gap">扫描螺旋线路的间隔</param>
-        /// <param name="interval">每条扫描线上反馈信号采样间隔</param>
-        /// <param name="hSpeed">水平轴扫描速度</param>
-        /// <param name="vSpeed">垂直轴扫描速度</param>
-        /// <param name="analogCapture">反馈信号捕获端口</param>
-        /// <param name="scanResult">扫描结果列表（X:水平轴坐标，Y:垂直轴坐标，Z:反馈信号）</param>
-        protected override void ChildStartBlindSearch(int hAxis, int vAxis, double range, double gap,
-            double interval, double hSpeed, double vSpeed, int analogCapture, out IEnumerable<Point3D> scanResult)
-        {
-            throw new NotSupportedException();
-        }
 
         /// <summary>
         /// 停止所有轴移动。
         /// </summary>
-        protected override void ChildStop()
+        protected override void StopImpl()
         {
             int rtn;
-            for (var i = 0; i < AxisCount; i++)
+            for (var i = 0; i < _maxAxis; i++)
             {
                 rtn = zmcaux.ZAux_Direct_Single_Cancel(_hMc, i, 0);
                 //CommandRtnCheck(rtn, "ZAux_Direct_Single_Cancel");
@@ -780,7 +706,7 @@ namespace APAS.MotionLib.ZMC
 
         }
 
-        protected override void ChildEmergencyStop()
+        protected override void EStopImpl()
         {
             var rtn = zmcaux.ZAux_Direct_Rapidstop(_hMc, 2);
             CommandRtnCheck(rtn, nameof(zmcaux.ZAux_Direct_Rapidstop));
@@ -789,35 +715,13 @@ namespace APAS.MotionLib.ZMC
         /// <summary>
         /// 关闭运动控制器，并销毁运动控制器实例。
         /// </summary>
-        protected override void ChildDispose()
+        protected override void DisposeImpl()
         {
-            // kill the background task
-            _cts?.Cancel();
-            Thread.Sleep(1000);
-
             // 停止所有轴运动。
-            ChildEmergencyStop();
+            EStopImpl();
 
             var rtn = zmcaux.ZAux_Close(_hMc);
             CommandRtnCheck(rtn, nameof(zmcaux.ZAux_Close));
-        }
-
-        /// <summary>
-        /// 检查移动速度。
-        /// <para>如无需检查，请保持该函数为空。</para>
-        /// </summary>
-        /// <param name="speed">速度</param>
-        protected override void CheckSpeed(double speed)
-        {
-
-        }
-
-        /// <summary>
-        /// 检查控制器状态。
-        /// </summary>
-        protected override void CheckController()
-        {
-            base.CheckController(); // 请勿删除该行。
         }
 
 
@@ -897,61 +801,6 @@ namespace APAS.MotionLib.ZMC
             throw new Exception($"{funcName} 功能异常，错误码： {rtnValue}, 异常信息：{errorInfo}");
         }
 
-        private void AxisStatueCheck(IntPtr cardHandle, int axisIndex)
-        {
-            // 检查急停
-            if (CheckEmbStatus())
-                throw new Exception($"紧急停止");
-
-            // 若非急停，检查轴状态
-            var errCode = 0;
-            var statueErrorInfo = string.Empty;
-
-            //int rtn = zmcaux.ZAux_Direct_GetAxisStatus(_hMc, axisIndex, ref reason);
-            var rtn = zmcaux.ZAux_Direct_GetAxisStopReason(_hMc, axisIndex, ref errCode);
-            CommandRtnCheck(rtn, nameof(zmcaux.ZAux_Direct_GetAxisStopReason));
-
-            if (errCode == 0)
-                return;
-            else if ((errCode & 0x2) > 0)
-                statueErrorInfo = "随动误差超限报警";
-            else if ((errCode & 0x4) > 0)
-                statueErrorInfo = "与远程轴通讯错误";
-            else if ((errCode & 0x8) > 0)
-                statueErrorInfo = "远程驱动器报错";
-            else if ((errCode & 0x10) > 0)
-                statueErrorInfo = "正向硬限位";
-            else if ((errCode & 0x20) > 0)
-                statueErrorInfo = "反向硬限位";
-            else if ((errCode & 0x40) > 0)
-                statueErrorInfo = "回原点中";
-            else if ((errCode & 0x80) > 0)
-                statueErrorInfo = "随动误差超限报警";
-            else if ((errCode & 0x100) > 0)
-                statueErrorInfo = "随动误差超限出错";
-            else if ((errCode & 0x200) > 0)
-                statueErrorInfo = "超过正向软限位";
-            else if ((errCode & 0x400) > 0)
-                statueErrorInfo = "超过负向软限位";
-            else if ((errCode & 0x800) > 0)
-                //statueErrorInfo = "CANCLE执行中";
-                throw new StoppedByUserException();
-            else if ((errCode & 0x1000) > 0)
-                statueErrorInfo = "脉冲频率操过MAX_SPEED限制";
-            else if ((errCode & 0x4000) > 0)
-                statueErrorInfo = "机械手指令坐标错误";
-            else if ((errCode & 0x40000) > 0)
-                statueErrorInfo = "电源异常";
-            else if ((errCode & 0x200000) > 0)
-                statueErrorInfo = "运动中触发特殊运动指令失败";
-            else if ((errCode & 0x400000) > 0)
-                statueErrorInfo = "报警信号输入";
-            else if ((errCode & 0x800000) > 0)
-                statueErrorInfo = "轴进入暂停状态";
-
-            RaiseAxisAlarmedEvent(new AxisAlarmedArgs(axisIndex, new AlarmInfo(errCode, statueErrorInfo)));
-            throw new Exception($"轴[{axisIndex}]运行异常，错误代码(0x{errCode:X})，{statueErrorInfo}");
-        }
 
         private void ReadParamFile(string filePath, ref McConfig cardParam)
         {
@@ -1056,7 +905,7 @@ namespace APAS.MotionLib.ZMC
         /// </summary>
         /// <param name="axis"></param>
         /// <param name="isCheckServoOn"></param>
-        private void AxisMovePreparation(int axis, bool isCheckServoOn = true)
+        private void PreMove(int axis, bool isCheckServoOn = true)
         {
             var axisMoveStatus = 0;
             var rtn = zmcaux.ZAux_Direct_GetIfIdle(_hMc, axis, ref axisMoveStatus);
@@ -1070,7 +919,7 @@ namespace APAS.MotionLib.ZMC
             // 检查Servo-On是否打开
             if (isCheckServoOn)
             {
-                var sta = ChildReadDigitalOutput(_mcConfig.Axes[axis].Io.ServoOn);
+                var sta = ReadDOImpl(_mcConfig.Axes[axis].Io.ServoOn);
 
                 if (sta == false)
                     throw new Exception($"轴[{axis}]未使能。");
@@ -1109,26 +958,6 @@ namespace APAS.MotionLib.ZMC
                 throw new Exception($"检查急停开关状态时错误，返回值{respon}格式错误。");
         }
 
-        private void StartBackgroundTask()
-        {
-            _cts = new CancellationTokenSource();
-            var ct = _cts.Token;
-
-            Task.Run(() =>
-            {
-                Thread.Sleep(2000);
-
-                while (true)
-                {
-                    UpdateStatus();
-                    Thread.Sleep(200);
-
-                    if (ct.IsCancellationRequested)
-                        break;
-                }
-            });
-        }
-
         private double ConvertAdcRawToRealworld(AnalogInParamConfig param, double adcRaw)
         {
             if (param == null)
@@ -1147,7 +976,7 @@ namespace APAS.MotionLib.ZMC
         public void UnitTest(int targetAxis)
         {
             Init();
-            ResetFault(targetAxis);
+            ResetAlarm(targetAxis);
             ServoOn(targetAxis);
             SetAcceleration(targetAxis, _mcConfig.Axes[targetAxis].Home.Acc);
             SetDeceleration(targetAxis, _mcConfig.Axes[targetAxis].Home.Dec);
@@ -1175,9 +1004,9 @@ namespace APAS.MotionLib.ZMC
                 range: 100000,
                 interval: 10,
                 speed: 50000,
-                analogCapture: 1,
+                capture: 1,
                 scanResult: out var pBuf1,
-                analogCapture2: 0,
+                capture2: 0,
                 scanResult2: out var pBuf2);
 
 
@@ -1194,8 +1023,7 @@ namespace APAS.MotionLib.ZMC
 
             for (var i = 0; i < 10; i++)
             {
-                var val = ReadAnalogInput();
-
+                var val = ReadAI(i);
             }
         }
     }

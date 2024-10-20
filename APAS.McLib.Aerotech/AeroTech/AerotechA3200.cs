@@ -9,9 +9,9 @@ using Aerotech.A3200.Information;
 using Aerotech.A3200.Status;
 using APAS.CoreLib.Charting;
 using APAS.McLib.Sdk;
+using APAS.McLib.Sdk.Core;
 using log4net;
 using A3200 = Aerotech.A3200.Controller;
-using ApasAxisInfo = APAS.McLib.Sdk.AxisInfo;
 
 namespace APAS.McLib.Aerotech
 {
@@ -21,6 +21,8 @@ namespace APAS.McLib.Aerotech
 
         private A3200 _controller;
         private ControllerDiagPacket _controllerDiagPacket;
+        private int _maxAxis;
+        private int _maxAI;
 
         #endregion
 
@@ -38,106 +40,108 @@ namespace APAS.McLib.Aerotech
 
         public void InitTest()
         {
-            ChildInit();
+            InitImpl();
         }
 
-        protected override void ChildInit()
+        protected override void InitImpl()
         {
             _controller = A3200.Connect();
+            _maxAxis = _controller.Information.Axes.Count;
 
-            AxisCount = _controller.Information.Axes.Count;
-
-            Logger?.Debug($"{AxisCount} axes were found.");
+            Logger?.Debug($"{_maxAxis} axes were found.");
 
             foreach (var a3200 in _controller.Information.Axes.Where(x => x.AxisType == ComponentType.NdriveMP))
             {
                 Logger?.Info($"Initializing the axis {a3200.Name}...");
                 Logger?.Debug($"finding the axis configured with the name {a3200.Name}...");
-                InnerAxisInfoCollection.Add(new ApasAxisInfo(a3200.Number, this, a3200.FirmwareVersion));
-
+                
                 // enable the servo.
                 Logger?.Debug($"Enabling the axis {a3200.Name}...");
                 _controller.Commands.Axes[a3200.Name].Motion.Enable();
 
                 // sync the current status so we don't need to home the axis if it's homed already.
                 Logger?.Debug($"Syncing the Homed State...");
-                var isHomed =
-                    _controller.Commands.Status.AxisStatus(a3200.Number, AxisStatusSignal.HomeState) != 0;
-
-                Logger?.Debug($"Syncing the position...");
-                var absPos = ChildUpdateAbsPosition(a3200.Number);
-
-                RaiseAxisStatusUpdatedEvent(new AxisStatusUpdatedArgs(a3200.Number, absPos, isHomed, true));
             }
 
-            MaxAnalogInputChannels = InnerAxisInfoCollection.Count * 4;
+            // 最大可用的AI数量
+            _maxAI = _controller.Information.Axes.Count * 4;
 
             // in the event we got the status of the each axis such as position, error, etc.
             _controller.ControlCenter.Diagnostics.NewDiagPacketArrived += DiagnosticsOnNewDiagPacketArrived;
         }
 
-        protected override double ChildUpdateAbsPosition(int axis)
+        protected override double ReadPosImpl(int axis)
         {
-            return _controller.Commands.Status.AxisStatus(axis, AxisStatusSignal.PositionFeedback);
+            return _controllerDiagPacket[axis].PositionFeedback;
         }
 
-        protected override void ChildUpdateStatus(int axis)
+        protected override StatusInfo ReadStatusImpl(int axis)
         {
-            // Ignored since the status is updated in the DiagnosticsOnNewDiagPacketArrived event.
+            var isBusy = !_controllerDiagPacket[axis].AxisStatus.MoveDone;
+            var isInp = _controllerDiagPacket[axis].AxisStatus.MoveDone;
+            var isHomed = _controllerDiagPacket[axis].AxisStatus.Homed;
+            var isServoOn = _controllerDiagPacket[axis].DriveStatus.Enabled;
+            var isAlarmed = !_controllerDiagPacket[axis].AxisFault.None;
+
+            AlarmInfo alarm = null;
+            if (isAlarmed)
+                alarm = new AlarmInfo(1, _controllerDiagPacket[axis].AxisFault.ToString());
+
+            return new StatusInfo(isBusy, isInp, isHomed, isServoOn, [alarm]);
         }
 
-        protected override void ChildUpdateStatus()
-        {
-            // Ignored since the status is updated in the DiagnosticsOnNewDiagPacketArrived event.
-        }
-
-        protected override void ChildSetAcceleration(int axis, double acc)
-        {
-            
-        }
-
-        protected override void ChildSetDeceleration(int axis, double dec)
-        {
-            
-        }
-
-        protected override void ChildSetEsDeceleration(int axis, double dec)
+        protected override void SetAccImpl(int axis, double acc)
         {
             
         }
 
-        protected override void ChildHome(int axis, double hiSpeed, double creepSpeed)
+        protected override void SetDecImpl(int axis, double dec)
+        {
+            
+        }
+
+        protected override void SetEsDecImpl(int axis, double dec)
+        {
+            
+        }
+
+        protected override void HomeImpl(int axis, double hiSpeed, double creepSpeed)
         {
             _controller.Commands.Axes[axis].Motion.Home();
-
-            // To make the AbsPosition equal to 0 after the HOME process, the delay MUST BE added.
-            Thread.Sleep(3000);
         }
 
-        protected override void ChildMove(int axis, double speed, double distance, bool fastMoveRequested = false,
-            double microstepRate = 0)
+        protected override bool CheckHomeDoneImpl(int axis)
+        {
+            return !_controllerDiagPacket[axis].AxisStatus.Homing;
+        }
+
+        protected override void MoveImpl(int axis, double speed, double distance)
         {
             _controller.Commands.Motion.MoveInc(axis, distance, speed);
-            _controller.Commands.Motion.WaitForMotionDone(WaitOption.MoveDone, axis);
         }
 
-        protected override void ChildServoOn(int axis)
+        protected override bool CheckMotionDoneImpl(int axis)
+        {
+            return _controllerDiagPacket[axis].AxisStatus.MoveDone;
+        }
+
+        protected override void ServoOnImpl(int axis)
         {
             _controller.Commands.Motion.Enable(axis);
         }
 
-        protected override void ChildServoOff(int axis)
+        protected override void ServoOffImpl(int axis)
         {
             _controller.Commands.Motion.Disable(axis);
         }
 
-        protected override void ChildResetFault(int axis)
+        protected override void ResetAlarmImpl(int axis)
         {
             _controller.Commands.Motion.FaultAck(axis);
         }
 
-        protected override void ChildStartFast1D(int axis, double range, double interval, double speed,
-            int analogCapture, out IEnumerable<Point2D> scanResult)
+        protected override void Fast1DImpl(int axis, double range, double interval, double speed,
+            int analogCapture, out Point2D[] scanResult)
         {
             // calculate the driver ID according to the port number of the analog input.
             var axisOfAin = analogCapture / 4;
@@ -184,21 +188,25 @@ namespace APAS.McLib.Aerotech
 
             // convert V to mV
             scanPoints.ForEach(p => p.Y *= 1000);
-            scanResult = scanPoints;
+            scanResult = scanPoints.ToArray();
         }
 
-
-        protected override void ChildStop()
+        protected override void StopImpl()
         {
             _controller.Commands.Motion.Abort(AxisMask.All);
         }
 
-        protected override void ChildEmergencyStop()
+        protected override void StopImpl(int axis)
+        {
+            _controller.Commands.Motion.Abort(axis);
+        }
+
+        protected override void EStopImpl()
         {
             _controller.Commands.Motion.Abort(AxisMask.All);
         }
 
-        protected override IReadOnlyList<double> ChildReadAnalogInput()
+        protected override double[] ReadAIImpl()
         {
             /*
              * A3200每个驱动器包含4路AI；
@@ -216,10 +224,10 @@ namespace APAS.McLib.Aerotech
                     volt.Add(pack.AnalogInput3 * 1000);
                 }
 
-            return volt;
+            return volt.ToArray();
         }
 
-        protected override double ChildReadAnalogInput(int port)
+        protected override double ReadAIImpl(int port)
         {
             var volt = double.NaN;
 
@@ -253,14 +261,13 @@ namespace APAS.McLib.Aerotech
             return volt;
         }
 
-        protected override void CheckController()
+        protected override bool CheckControllerImpl(out string reason)
         {
-            
+            reason = "";
             if (_controller == null)
-                throw new NullReferenceException($"A3200 controller is null, possibly because the controller is disabled in the configuration file.");
+                reason = $"A3200 controller is null, possibly because the controller is disabled in the configuration file.";
 
-            base.CheckController();
-
+            return !string.IsNullOrEmpty(reason);
         }
 
         #endregion
@@ -298,19 +305,6 @@ namespace APAS.McLib.Aerotech
         private void DiagnosticsOnNewDiagPacketArrived(object sender, NewDiagPacketArrivedEventArgs e)
         {
             _controllerDiagPacket = e.Data;
-
-            for (var i = 0; i < e.Data.Count; i++)
-            {
-                AlarmInfo alarm = null;
-                if (!e.Data[i].AxisFault.None)
-                {
-                    var code = e.Data[i].AxisFault;
-                    alarm = new AlarmInfo(0, e.Data[i].AxisFault.ToString());
-                }
-
-                RaiseAxisStatusUpdatedEvent(
-                    new AxisStatusUpdatedArgs(i, e.Data[i].PositionFeedback, e.Data[i].AxisStatus.Homed, true, alarm));
-            }
         }
 
         #endregion

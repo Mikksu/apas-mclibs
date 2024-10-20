@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using APAS.CoreLib.Charting;
@@ -7,6 +9,8 @@ using APAS.McLib.Sdk;
 using APAS.McLib.Sdk.Core;
 using APAS.McLib.Sdk.Exceptions;
 using log4net;
+using log4net.Core;
+using StatusInfo = APAS.McLib.Sdk.Core.StatusInfo;
 
 
 //！ 应用该模板时，请注意将命名空间更改为实际名称。
@@ -16,19 +20,23 @@ namespace APAS.McLib.Virtual
     {
         #region Variables
 
-        private bool isStopRequested = false;
+        private const int MAX_SIM_AXIS = 32;
+        private const int MAX_SIM_IO = 32;
 
-        private readonly bool[] _fakeDi, _fakeDo;
-        private readonly double[] _fakeAi, _fakeAo;
+        /// <summary>
+        /// HOME模拟的最大持续时间，单位秒。
+        /// </summary>
+        private const int MAX_HOME_SIM_DURATION_S = 5;
 
-        private readonly double[] _fakeAcc, _fakeDec;
-        private readonly double[] _fakeAbsPosition, _fakeAbsPositionJittered;
-        private readonly bool[] _fakeIsHomed;
+        private readonly Random _rndAIO = new Random();
+        private readonly bool[] _buffDi = new bool[MAX_SIM_IO];
+        private readonly bool[] _buffDo = new bool[MAX_SIM_IO];
+        private readonly double[] _buffAi = new double[MAX_SIM_IO];
+        private readonly double[] _buffAo = new double[MAX_SIM_IO];
 
-        private CancellationTokenSource _cts;
-        private readonly object _myLocker = new object();
+        private readonly SimAxis[] _simAxis = new SimAxis[MAX_SIM_AXIS];
 
-        private CancellationTokenSource _ctsJog;
+
 
         #endregion
 
@@ -44,24 +52,7 @@ namespace APAS.McLib.Virtual
         public VirtualMc(string portName, int baudRate, string config, ILog logger) : base(portName,
             baudRate, config, logger)
         {
-            //TODO 此处初始化控制器参数；如果下列参数动态读取，则可在ChildInit()函数中赋值。
-            AxisCount = 32; // 最大轴数
-            MaxAnalogInputChannels = 32; // 最大模拟量输入通道数
-            MaxAnalogOutputChannels = 32; // 最大模拟量输出通道数
-            MaxDigitalInputChannels = 32; // 最大数字量输入通道数
-            MaxDigitalOutputChannels = 32; // 最大数字量输出通道数
-
-            _fakeDi = new bool[MaxDigitalInputChannels];
-            _fakeDo = new bool[MaxDigitalOutputChannels];
-            _fakeAi = new double[MaxAnalogInputChannels];
-            _fakeAo = new double[MaxAnalogOutputChannels];
-
-            _fakeAcc = new double[AxisCount];
-            _fakeDec = new double[AxisCount];
-
-            _fakeAbsPosition = new double[AxisCount];
-            _fakeAbsPositionJittered = new double[AxisCount];
-            _fakeIsHomed = new bool[AxisCount];
+            //TODO 此处初始化控制器参数；如果下列参数动态读取，则可在InitImpl()函数中赋值。
         }
 
         #endregion
@@ -71,7 +62,7 @@ namespace APAS.McLib.Virtual
         /// <summary>
         /// 初始化指定轴卡。
         /// </summary>
-        protected override void ChildInit()
+        protected override void InitImpl()
         {
             //TODO 1.初始化运动控制器对象，例如凌华轴卡、固高轴卡等。
             // 例如：初始化固高轴卡：gts.mc.GT_Open(portName, 1);
@@ -79,15 +70,7 @@ namespace APAS.McLib.Virtual
             //TODO 2.读取控制器固件版本，并赋值到属性 FwVersion
 
             //TODO 3.读取每个轴的信息，构建 InnerAxisInfoCollection，包括轴号和固件版本号。
-            // 注意：InnerAxisInfoCollection 已在基类的构造函数中初始化
-            // 例如： InnerAxisInfoCollection.Add(new AxisInfo(1, new Version(1, 0, 0)));
-            for (var i = 0; i < AxisCount; i++)
-            {
-                _fakeAbsPosition[i] = int.MinValue;
-                InnerAxisInfoCollection.Add(new AxisInfo(i, this, new Version(1, 1, 2)));
-            }
-
-            StartBackgroundTask();
+            
         }
 
         /// <summary>
@@ -95,9 +78,9 @@ namespace APAS.McLib.Virtual
         /// </summary>
         /// <param name="axis">轴号</param>
         /// <param name="acc">加速度值</param>
-        protected override void ChildSetAcceleration(int axis, double acc)
+        protected override void SetAccImpl(int axis, double acc)
         {
-            _fakeAcc[axis] = acc;
+            _simAxis[axis].Acc = acc;
         }
 
         /// <summary>
@@ -105,14 +88,14 @@ namespace APAS.McLib.Virtual
         /// </summary>
         /// <param name="axis">轴号</param>
         /// <param name="dec">减速度值</param>
-        protected override void ChildSetDeceleration(int axis, double dec)
+        protected override void SetDecImpl(int axis, double dec)
         {
-            _fakeDec[axis] = dec;
+            _simAxis[axis].Dec = dec;
         }
 
-        protected override void ChildSetEsDeceleration(int axis, double dec)
+        protected override void SetEsDecImpl(int axis, double dec)
         {
-           // ignore
+            _simAxis[axis].EStopDec = dec;
         }
 
         /// <summary>
@@ -121,31 +104,55 @@ namespace APAS.McLib.Virtual
         /// <param name="axis">轴号</param>
         /// <param name="hiSpeed">快速找机械原点的速度值。如不适用请忽略。</param>
         /// <param name="creepSpeed">找到机械原点后返回零位的爬行速度。如不适用请忽略。</param>
-        protected override void ChildHome(int axis, double hiSpeed, double creepSpeed)
+        protected override void HomeImpl(int axis, double hiSpeed, double creepSpeed)
         {
-            isStopRequested = false;
-            _fakeIsHomed[axis] = false;
+            var ax = _simAxis[axis];
+            ax.Cts = new CancellationTokenSource();
+            ax.IsHomed = false;
+            ax.IsHoming = true;
+            ax.IsBusy = true;
+            var posBeforeHome = ax.Position;
 
-            // 随机Home过程需要的时长
-            var r = new Random();
-            var duration = r.NextDouble() * 3000; // 最大5s完成Home
-            var timeFly = 0;
-            while (timeFly < duration)
+            Task.Run(() =>
             {
-                _fakeAbsPosition[axis] -= r.NextDouble() * 100;
-                timeFly += 10;
-                RaiseAxisStatusUpdatedEvent(new AxisStatusUpdatedArgs(axis, _fakeAbsPosition[axis], false, true));
+                try
+                {
+                    // 随机Home过程需要的时长
+                    var r = new Random();
+                    var duration = r.NextDouble() * MAX_HOME_SIM_DURATION_S * 60; // 最大5s完成Home
 
-                Thread.Sleep(10);
+                    var sw = new Stopwatch();
+                    sw.Start();
+                    while (sw.Elapsed.TotalMilliseconds < duration)
+                    {
+                        ax.Position = posBeforeHome - 10;
 
-                if (isStopRequested)
-                    throw new StoppedByUserException();
-            }
+                        Thread.Sleep(100);
 
-            _fakeAbsPosition[axis] = 0;
-            _fakeIsHomed[axis] = true;
+                        if (_simAxis[axis].Cts.Token.IsCancellationRequested)
+                            break;
+                    }
 
-            RaiseAxisStatusUpdatedEvent(new AxisStatusUpdatedArgs(axis, _fakeAbsPosition[axis], true, true));
+                    ax.Position = 0;
+                    ax.IsHomed = true;
+                    
+                }
+                catch
+                {
+                    // ignored
+                }
+                finally
+                {
+                    ax.IsHoming = false;
+                    ax.IsBusy = false;
+                }
+                
+            });
+        }
+
+        protected override bool CheckHomeDoneImpl(int axis)
+        {
+            return !_simAxis[axis].IsHoming;
         }
 
         /// <summary>
@@ -155,112 +162,74 @@ namespace APAS.McLib.Virtual
         /// <param name="speed">移动速度。该速度根据APAS主程序的配置文件计算得到。计算方法为MaxSpeed * 速度百分比。</param>
         /// <param name="distance">相对移动的距离。该距离已被APAS主程序转换为轴卡对应的实际单位。例如对于脉冲方式，
         /// 该值已转换为步数；对于伺服系统，该值已转换为实际距离。</param>
-        /// <param name="fastMoveRequested">是否启用快速移动模式。如不适用请忽略。</param>
-        /// <param name="microstepRate">当启用快速移动模式时的驱动器细分比值。如不适用请忽略。</param>
-        protected override void ChildMove(int axis, double speed, double distance,
-            bool fastMoveRequested = false, double microstepRate = 0)
+        protected override void MoveImpl(int axis, double speed, double distance)
         {
-            isStopRequested = false;
+            var ax = _simAxis[axis];
+            if (ax.IsBusy)
+                throw new Exception("axis is busy.");
+
+            
             var step = Math.Abs(speed / 10) * Math.Sign(distance);
             var distMoved = 0.0;
 
-            while (true)
-            {
-                if (Math.Abs(distance - distMoved) > Math.Abs(step))
-                {
-                    _fakeAbsPosition[axis] += step;
-                    distMoved += step;
-                    RaiseAxisStatusUpdatedEvent(new AxisStatusUpdatedArgs(axis, _fakeAbsPosition[axis]));
-                }
-                else
-                {
-                    _fakeAbsPosition[axis] += distance - distMoved;
-                    RaiseAxisStatusUpdatedEvent(new AxisStatusUpdatedArgs(axis, _fakeAbsPosition[axis]));
-                    break;
-                }
-
-                if (isStopRequested)
-                    throw new StoppedByUserException();
-
-                Thread.Sleep(10);
-            }
-        }
-
-
-        /// <summary>
-        /// 移动指定轴到绝对位置（绝对移动模式）。
-        /// </summary>
-        /// <param name="axis">轴号</param>
-        /// <param name="speed">移动速度</param>
-        /// <param name="position">绝对目标位置</param>
-        /// <param name="fastMoveRequested">是否启用快速移动模式。如不适用请忽略。</param>
-        /// <param name="microstepRate">当启用快速移动模式时的驱动器细分比值。如不适用请忽略。</param>
-        protected override void ChildMoveAbs(int axis, double speed, double position, bool fastMoveRequested = false,
-            double microstepRate = 0)
-        {
-            throw new NotImplementedException();
-        }
-
-        /// <summary>
-        /// 以Jog模式运动指定的轴。
-        /// </summary>
-        /// <param name="axis"></param>
-        /// <param name="dir"></param>
-        /// <param name="speed"></param>
-        /// <param name="acc"></param>
-        /// <param name="dec"></param>
-        
-        protected override void ChildJogStart(int axis, JogDir dir, double speed, double? acc = null, double? dec = null)
-        {
-            lock (_myLocker)
-            {
-                if(_ctsJog == null)
-                    _ctsJog = new CancellationTokenSource();
-            }
-
-            var ct = _ctsJog.Token;
-
-            var step = Math.Abs(speed / 10) * (dir == JogDir.NEGATIVE ? -1.0d : 1.0d);
-
             Task.Run(() =>
             {
-                while (true)
+                ax.IsBusy = true;
+                try
                 {
-                    _fakeAbsPosition[axis] += step;
-                    RaiseAxisStatusUpdatedEvent(new AxisStatusUpdatedArgs(axis, _fakeAbsPosition[axis]));
+                    while (true)
+                    {
+                        if (Math.Abs(distance - distMoved) > Math.Abs(step))
+                        {
+                            ax.Position += step;
+                            distMoved += step;
+                        }
+                        else
+                        {
+                            ax.Position += distance - distMoved;
+                            break;
+                        }
 
-                    Thread.Sleep(10);
+                        if (ax.Cts.Token.IsCancellationRequested)
+                            break;
 
-                    if (ct.IsCancellationRequested)
-                        throw new StoppedByUserException();
+                        Thread.Sleep(10);
+                    }
                 }
-            }, ct);
+                catch
+                {
+                    throw;
+                }
+                finally
+                {
+                    ax.IsBusy = false;
+                }
+                
+            });
+            
         }
 
-        protected override void ChildJogStop(int axis)
+        protected override bool CheckMotionDoneImpl(int axis)
         {
-            lock (_myLocker)
-            {
-                _ctsJog?.Cancel();
-            }
+            return !_simAxis[axis].IsBusy;
         }
 
         /// <summary>
         /// 开启励磁。
         /// </summary>
         /// <param name="axis">轴号</param>
-        protected override void ChildServoOn(int axis)
+        protected override void ServoOnImpl(int axis)
         {
-            throw new NotSupportedException();
+            _simAxis[axis].IsServoOn = true;
         }
 
         /// <summary>
         /// 关闭励磁。
         /// </summary>
         /// <param name="axis">轴号</param>
-        protected override void ChildServoOff(int axis)
+        protected override void ServoOffImpl(int axis)
         {
-            throw new NotSupportedException();
+            _simAxis[axis].IsServoOn = false;
         }
 
         /// <summary>
@@ -268,10 +237,9 @@ namespace APAS.McLib.Virtual
         /// </summary>
         /// <param name="axis">轴号</param>
         /// <returns>最新绝对位置</returns>
-        protected override double ChildUpdateAbsPosition(int axis)
+        protected override double ReadPosImpl(int axis)
         {
-            RaiseAxisStatusUpdatedEvent(new AxisStatusUpdatedArgs(axis, _fakeAbsPositionJittered[axis]));
-            return _fakeAbsPositionJittered[axis];
+            return _simAxis[axis].Position;
         }
 
         /// <summary>
@@ -279,38 +247,17 @@ namespace APAS.McLib.Virtual
         /// <para>注意：请在该函数调用RaiseAxisStateUpdatedEvent()函数，以通知APAS主程序当前轴的状态已更新。</para>
         /// </summary>
         /// <param name="axis">轴号</param>
-        protected override void ChildUpdateStatus(int axis)
+        protected override StatusInfo ReadStatusImpl(int axis)
         {
-            // 注意:
-            // 1. 读取完状态后请调用 RaiseAxisStatusUpdatedEvent 函数。
-            // 2. 实例化 AxisStatusUpdatedArgs 时请传递所有参数。
-            //// RaiseAxisStatusUpdatedEvent(new AxisStatusUpdatedArgs(int.MinValue, double.NaN, false, false));
-
-            RaiseAxisStatusUpdatedEvent(new AxisStatusUpdatedArgs(axis, _fakeAbsPositionJittered[axis], _fakeIsHomed[axis]));
+            var ax = _simAxis[axis];
+            return new StatusInfo(ax.IsBusy, ax.IsInp, ax.IsHomed, ax.IsServoOn, null);
         }
-
-        /// <summary>
-        /// 更新所有轴状态。
-        /// <see cref="ChildUpdateStatus(int)"/>
-        /// </summary>
-        protected override void ChildUpdateStatus()
-        {
-            // 注意:
-            // 1. 读取完状态后请循环调用 RaiseAxisStatusUpdatedEvent 函数，
-            //    例如对于 8 轴轴卡，请调用针对8个轴调用 8 次 RaiseAxisStatusUpdatedEvent 函数。
-            // 2. 实例化 AxisStatusUpdatedArgs 时请传递所有参数。
-            //// RaiseAxisStatusUpdatedEvent(new AxisStatusUpdatedArgs(int.MinValue, double.NaN, false, false));
-
-            for (var i = 0; i < AxisCount; i++)
-                RaiseAxisStatusUpdatedEvent(new AxisStatusUpdatedArgs(i, _fakeAbsPosition[i]));
-        }
-
 
         /// <summary>
         /// 清除指定轴的错误。
         /// </summary>
         /// <param name="axis">轴号</param>
-        protected override void ChildResetFault(int axis)
+        protected override void ResetAlarmImpl(int axis)
         {
            
         }
@@ -323,11 +270,11 @@ namespace APAS.McLib.Virtual
         /// </summary>
         /// <param name="port">端口号</param>
         /// <param name="isOn">是否设置为有效电平</param>
-        protected override void ChildSetDigitalOutput(int port, bool isOn)
+        protected override void SetDOImpl(int port, bool isOn)
         {
-            if (port >= 0 && port < MaxDigitalOutputChannels)
+            if (port >= 0 && port < MAX_SIM_IO)
             {
-                _fakeDo[port] = isOn;
+                _buffDo[port] = isOn;
             }
         }
 
@@ -336,11 +283,11 @@ namespace APAS.McLib.Virtual
         /// </summary>
         /// <param name="port">端口号</param>
         /// <returns>端口状态。True表示端口输出为有效电平。</returns>
-        protected override bool ChildReadDigitalOutput(int port)
+        protected override bool ReadDOImpl(int port)
         {
-            if (port >= 0 && port < MaxDigitalOutputChannels)
+            if (port >= 0 && port < MAX_SIM_IO)
             {
-                return _fakeDo[port];
+                return _buffDo[port];
             }
             else
             {
@@ -352,9 +299,9 @@ namespace APAS.McLib.Virtual
         /// 读取所有数字输出端口。
         /// </summary>
         /// <returns>端口状态列表。True表示端口输出为有效电平。</returns>
-        protected override IReadOnlyList<bool> ChildReadDigitalOutput()
+        protected override bool[] ReadDOImpl()
         {
-            return _fakeDo;
+            return _buffDo;
         }
 
         /// <summary>
@@ -362,11 +309,11 @@ namespace APAS.McLib.Virtual
         /// </summary>
         /// <param name="port">端口号</param>
         /// <returns>端口状态。True表示端口输出为有效电平。</returns>
-        protected override bool ChildReadDigitalInput(int port)
+        protected override bool ReadDIImpl(int port)
         {
-            if (port >= 0 && port < MaxDigitalInputChannels)
+            if (port >= 0 && port < MAX_SIM_IO)
             {
-                return _fakeDi[port];
+                return _buffDi[port];
             }
             else
             {
@@ -378,9 +325,9 @@ namespace APAS.McLib.Virtual
         /// 读取所有数字输入端口。
         /// </summary>
         /// <returns>端口状态列表。True表示端口输出为有效电平。</returns>
-        protected override IReadOnlyList<bool> ChildReadDigitalInput()
+        protected override bool[] ReadDIImpl()
         {
-            return _fakeDi;
+            return _buffDi;
         }
 
         #endregion
@@ -391,9 +338,9 @@ namespace APAS.McLib.Virtual
         /// 读取所有模拟输入端口的电压值。
         /// </summary>
         /// <returns>电压值列表。</returns>
-        protected override IReadOnlyList<double> ChildReadAnalogInput()
+        protected override double[] ReadAIImpl()
         {
-            return _fakeAi;
+            return _buffAi;
         }
 
         /// <summary>
@@ -401,11 +348,11 @@ namespace APAS.McLib.Virtual
         /// </summary>
         /// <param name="port">端口号</param>
         /// <returns></returns>
-        protected override double ChildReadAnalogInput(int port)
+        protected override double ReadAIImpl(int port)
         {
-            if (port >= 0 && port < MaxAnalogInputChannels)
+            if (port >= 0 && port < MAX_SIM_IO)
             {
-                return _fakeAi[port];
+                return _buffAi[port];
             }
             else
             {
@@ -417,9 +364,9 @@ namespace APAS.McLib.Virtual
         /// 读取所有模拟输出端口的电压值。
         /// </summary>
         /// <returns>电压值列表。</returns>
-        protected override IReadOnlyList<double> ChildReadAnalogOutput()
+        protected override double[] ReadAOImpl()
         {
-            throw new NotImplementedException();
+            return _buffAo.Select(x => x + _rndAIO.NextDouble()).ToArray();
         }
 
         /// <summary>
@@ -427,9 +374,9 @@ namespace APAS.McLib.Virtual
         /// </summary>
         /// <param name="port">端口号</param>
         /// <returns></returns>
-        protected override double ChildReadAnalogOutput(int port)
+        protected override double ReadAOImpl(int port)
         {
-            throw new NotImplementedException();
+            return _buffAo[port] + _rndAIO.NextDouble();
         }
 
         /// <summary>
@@ -437,27 +384,9 @@ namespace APAS.McLib.Virtual
         /// </summary>
         /// <param name="port">端口号</param>
         /// <param name="value">电压值</param>
-        protected override void ChildSetAnalogOutput(int port, double value)
+        protected override void SetAOImpl(int port, double value)
         {
-            throw new NotSupportedException();
-        }
-
-        /// <summary>
-        /// 打开指定模拟输出端口的输出。
-        /// </summary>
-        /// <param name="port">端口号</param>
-        protected override void ChildAnalogOutputOn(int port)
-        {
-            throw new NotSupportedException();
-        }
-
-        /// <summary>
-        /// 关闭指定模拟输出端口的输出。
-        /// </summary>
-        /// <param name="port">端口号</param>
-        protected override void ChildAnalogOutputOff(int port)
-        {
-            throw new NotSupportedException();
+            _buffAo[port] = value;
         }
 
         #endregion
@@ -471,7 +400,7 @@ namespace APAS.McLib.Virtual
         /// <param name="vth">阈值电压</param>
         /// <param name="distance">最大移动距离</param>
         /// <param name="speed">移动速度</param>
-        protected override void ChildAutoTouch(int axis, int analogInputPort, double vth, double distance, double speed)
+        protected override void AutoTouchImpl(int axis, int analogInputPort, double vth, double distance, double speed)
         {
             throw new NotSupportedException();
         }
@@ -483,10 +412,10 @@ namespace APAS.McLib.Virtual
         /// <param name="range">扫描范围</param>
         /// <param name="interval">反馈信号采样间隔</param>
         /// <param name="speed">移动速度</param>
-        /// <param name="analogCapture">反馈信号捕获端口</param>
+        /// <param name="capture">反馈信号捕获端口</param>
         /// <param name="scanResult">扫描结果列表（X:位置，Y:反馈信号）</param>
-        protected override void ChildStartFast1D(int axis, double range, double interval, double speed,
-            int analogCapture, out IEnumerable<Point2D> scanResult)
+        protected override void Fast1DImpl(int axis, double range, double interval, double speed,
+            int capture, out Point2D[] scanResult)
         {
             throw new NotSupportedException();
         }
@@ -498,13 +427,12 @@ namespace APAS.McLib.Virtual
         /// <param name="range">扫描范围</param>
         /// <param name="interval">第1路反馈信号采样间隔</param>
         /// <param name="speed">移动速度</param>
-        /// <param name="analogCapture">反馈信号捕获端口</param>
+        /// <param name="capture">反馈信号捕获端口</param>
         /// <param name="scanResult">第1路扫描结果列表（X:位置，Y:反馈信号）</param>
-        /// <param name="analogCapture2">第2路反馈信号采样间隔</param>
+        /// <param name="capture2">第2路反馈信号采样间隔</param>
         /// <param name="scanResult2">第2路扫描结果列表（X:位置，Y:反馈信号）</param>
-        protected override void ChildStartFast1D(int axis, double range, double interval, double speed,
-            int analogCapture,
-            out IEnumerable<Point2D> scanResult, int analogCapture2, out IEnumerable<Point2D> scanResult2)
+        protected override void Fast1DImpl(int axis, double range, double interval, double speed,
+            int capture, out Point2D[] scanResult, int capture2, out Point2D[] scanResult2)
         {
             throw new NotSupportedException();
         }
@@ -519,10 +447,10 @@ namespace APAS.McLib.Virtual
         /// <param name="interval">每条扫描线上反馈信号采样间隔</param>
         /// <param name="hSpeed">水平轴扫描速度</param>
         /// <param name="vSpeed">垂直轴扫描速度</param>
-        /// <param name="analogCapture">反馈信号捕获端口</param>
+        /// <param name="capture">反馈信号捕获端口</param>
         /// <param name="scanResult">扫描结果列表（X:水平轴坐标，Y:垂直轴坐标，Z:反馈信号）</param>
-        protected override void ChildStartBlindSearch(int hAxis, int vAxis, double range, double gap,
-            double interval, double hSpeed, double vSpeed, int analogCapture, out IEnumerable<Point3D> scanResult)
+        protected override void BlindSearchImpl(int hAxis, int vAxis, double range, double gap,
+            double interval, double hSpeed, double vSpeed, int capture, out Point3D[] scanResult)
         {
             throw new NotSupportedException();
         }
@@ -530,121 +458,34 @@ namespace APAS.McLib.Virtual
         /// <summary>
         /// 停止所有轴移动。
         /// </summary>
-        protected override void ChildStop()
+        protected override void StopImpl()
         {
-            isStopRequested = true;
+            _simAxis.ToList().ForEach(x => x.Cts?.Cancel());
+        }
+
+        protected override void StopImpl(int axis)
+        {
+            _simAxis[axis].Cts?.Cancel();
         }
 
         /// <summary>
         /// 紧急停止所有轴。
         /// </summary>
-        protected override void ChildEmergencyStop()
+        protected override void EStopImpl()
         {
-            isStopRequested = true;
+            StopImpl();
         }
 
         /// <summary>
         /// 关闭运动控制器，并销毁运动控制器实例。
         /// </summary>
-        protected override void ChildDispose()
+        protected override void DisposeImpl()
         {
+            // 结束所有可能正在执行的Move仿真线程。
+            StopImpl();
         }
 
-        /// <summary>
-        /// 检查移动速度。
-        /// <para>如无需检查，请保持该函数为空。</para>
-        /// </summary>
-        /// <param name="speed">速度</param>
-        protected override void CheckSpeed(double speed)
-        {
-        }
         
-        #endregion
-
-        #region Private Methods
-
-        /// <summary>
-        /// Start a background task to simulate the random IO status, servo position feedback jitter, etc..
-        /// </summary>
-        private void StartBackgroundTask()
-        {
-            Logger.Debug("Starting the background task of the VirtualMotionController...");
-
-            _cts = new CancellationTokenSource();
-            var _ct = _cts.Token;
-            var random = new Random();
-
-            #region Random Digital Io Status
-
-            Task.Run(() =>
-            {
-                while (true)
-                {
-                    if (_ct.IsCancellationRequested)
-                        break;
-
-                    lock (_myLocker)
-                    {
-                        for (var i = 0; i < MaxDigitalInputChannels; i++)
-                        {
-                            _fakeDi[i] = !(random.NextDouble() < 0.5);
-                        }
-
-                        for (var i = 0; i < MaxDigitalInputChannels; i++)
-                        {
-                            _fakeDo[i] = !(random.NextDouble() < 0.5);
-                        }
-                    }
-
-                    Thread.Sleep(2000);
-                }
-            }, _ct);
-
-            #endregion
-
-            #region Random Analog Input
-
-            Task.Run(() =>
-            {
-                
-                while (true)
-                {
-                    if (_ct.IsCancellationRequested)
-                        break;
-
-                    for (var i = 0; i < MaxAnalogInputChannels; i++)
-                    {
-                        _fakeAi[i] = random.NextDouble() * 1000;
-                    }
-
-                    Thread.Sleep(200);
-                }
-            }, _ct);
-
-            #region Random Servo Position Feedback Jitter
-
-            Task.Run(() =>
-            {
-                while (true)
-                {
-                    if (_ct.IsCancellationRequested)
-                        break;
-
-                    for (var i = 0; i < AxisCount; i++)
-                    {
-                        _fakeAbsPositionJittered[i] = _fakeAbsPosition[i] + random.Next(-10, 10);
-                        UpdateAbsPosition(i);
-                    }
-
-                    Thread.Sleep(100);
-                }
-            }, _ct);
-
-            #endregion
-
-            #endregion
-        }
-
         #endregion
     }
 }

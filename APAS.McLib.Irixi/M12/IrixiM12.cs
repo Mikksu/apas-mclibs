@@ -7,9 +7,9 @@ using M12;
 using M12.Commands.Alignment;
 using M12.Definitions;
 using M12.Exceptions;
-using System.Threading.Tasks;
 using APAS.CoreLib.Charting;
 using APAS.McLib.Sdk;
+using APAS.McLib.Sdk.Core;
 
 namespace APAS.McLib.Irixi
 {
@@ -18,26 +18,18 @@ namespace APAS.McLib.Irixi
         #region Variables
 
         private readonly Controller _m12;
+        private StatusInfo[] _buffStatus = new StatusInfo[12];
+        private double[] _buffPos = new double[12];
 
         #endregion
 
         #region Constructors
 
-        public IrixiM12(string portName, int baudRate, string config, ILog logger) : base(
-            portName, baudRate)
+        public IrixiM12(string portName, int baudRate, string config, ILog logger) 
+            : base(portName, baudRate, config, logger)
         {
             _m12 = new Controller(portName, baudRate);
-            _m12.OnUnitStateUpdated += _m12_OnUnitStateUpdated;
-
-            AxisCount = 12;
-            MaxAnalogInputChannels = 8;
-            MaxDigitalInputChannels = 8;
-            MaxDigitalOutputChannels = 8;
         }
-
-        #endregion
-
-        #region Properties
 
         #endregion
 
@@ -84,38 +76,10 @@ namespace APAS.McLib.Irixi
         }
 
         #endregion
-
-        #region Events
-
-        private void _m12_OnUnitStateUpdated(object sender, M12.Base.UnitState e)
-        {
-            RaiseAxisStateUpdatedEvent(new AxisStatusArgs(UnitIdToAxisIndex(e.Id), e.AbsPosition, e.IsHomed));
-        }
-
-        #endregion
-
+        
         #region Override Methods
 
-        protected override void ChildSetAcceleration(int axis, double acceleration)
-        {
-            var unitId = AxisIndexToUnitId(axis);
-
-            _m12.SetAccelerationSteps(unitId, (ushort) acceleration);
-
-            Thread.Sleep(5);
-        }
-
-        protected override void ChildSetDeceleration(int axis, double dec)
-        {
-            // ignore
-        }
-
-        protected override void ChildSetEsDeceleration(int axis, double dec)
-        {
-            // ignore
-        }
-
-        protected sealed override void ChildInit()
+        protected override void InitImpl()
         {
             M12.Base.SystemInformation info;
             try
@@ -134,12 +98,28 @@ namespace APAS.McLib.Irixi
             }
 
             FwVersion = info.FirmwareVersion;
-            AxisCount = info.MaxUnit;
-
-            StartBackgroundTask();
         }
 
-        protected override void ChildHome(int axis, double hiSpeed, double creepSpeed)
+        protected override void SetAccImpl(int axis, double acceleration)
+        {
+            var unitId = AxisIndexToUnitId(axis);
+
+            _m12.SetAccelerationSteps(unitId, (ushort)acceleration);
+
+            Thread.Sleep(5);
+        }
+
+        protected override void SetDecImpl(int axis, double dec)
+        {
+            // ignore
+        }
+
+        protected override void SetEsDecImpl(int axis, double dec)
+        {
+            // ignore
+        }
+
+        protected override void HomeImpl(int axis, double hiSpeed, double creepSpeed)
         {
             if (hiSpeed <= 1 || hiSpeed > 100)
                 throw new ArgumentOutOfRangeException(nameof(hiSpeed), "the speed1 must be 1 ~ 100");
@@ -155,38 +135,30 @@ namespace APAS.McLib.Irixi
             Thread.Sleep(50);
         }
 
-        protected override void ChildMove(int axis, double speed, double distance, bool fastMoveRequested = false,
-            double microstepRate = 0)
+        protected override bool CheckHomeDoneImpl(int axis)
+        {
+            var stat = _m12.GetUnitState(AxisIndexToUnitId(axis));
+            return !stat.IsBusy;
+        }
+
+        protected override void MoveImpl(int axis, double speed, double distance)
         {
             var unitId = AxisIndexToUnitId(axis);
 
-            var mcDistance = (int) distance;
-            var mcSpeed = (byte) speed;
-            var mcMicrostepRate = (ushort) microstepRate;
+            var mcDistance = (int)distance;
+            var mcSpeed = (byte)speed;
 
-            // Move the the target position
-            try
-            {
-                if (fastMoveRequested)
-                {
-                    if (mcDistance != 0)
-                        _m12.FastMove(unitId, mcDistance, mcSpeed, mcMicrostepRate);
-                }
-                else
-                {
-                    // /SetAcceleration(ax, ax.AccelerationSteps);
-                    _m12.Move(unitId, mcDistance, mcSpeed);
-                }
-            }
-            catch(UnitErrorException ex)
-            {
-                // Ignore the USER_STOPPED exception.
-                if (ex.Error != Errors.ERR_USER_STOPPED)
-                    throw new Exception(ex.Message, ex);
-            }
+            // /SetAcceleration(ax, ax.AccelerationSteps);
+            _m12.Move(unitId, mcDistance, mcSpeed);
         }
 
-        protected override double ChildUpdateAbsPosition(int axis)
+        protected override bool CheckMotionDoneImpl(int axis)
+        {
+            var stat = _m12.GetUnitState(AxisIndexToUnitId(axis));
+            return !stat.IsBusy;
+        }
+
+        protected override double ReadPosImpl(int axis)
         {
             var unitId = AxisIndexToUnitId(axis);
             var sta = _m12.GetUnitState(unitId);
@@ -196,32 +168,18 @@ namespace APAS.McLib.Irixi
             throw new InvalidOperationException($"unable to get the status of the {unitId} from the IrixiM12.");
         }
 
-        protected override void ChildUpdateStatus(int axis)
+        protected override StatusInfo ReadStatusImpl(int axis)
         {
             var unitId = AxisIndexToUnitId(axis);
-            var sta = _m12.GetUnitState(unitId);
-            if (sta != null)
-                RaiseAxisStateUpdatedEvent(new AxisStatusArgs(UnitIdToAxisIndex(sta.Id), sta.AbsPosition, sta.IsHomed));
+            var us = _m12.GetUnitState(unitId);
+            return new StatusInfo(us.IsBusy, !us.IsBusy, us.IsHomed, true, null);
         }
 
-        protected override void ChildUpdateStatus()
-        {
-            foreach (UnitID id in Enum.GetValues(typeof(UnitID)))
-            {
-                if (id == UnitID.ALL || id == UnitID.INVALID)
-                    continue;
-
-                var sta = _m12.GetUnitState(id);
-                if (sta != null)
-                    RaiseAxisStateUpdatedEvent(new AxisStatusArgs(UnitIdToAxisIndex(sta.Id), sta.AbsPosition,
-                        sta.IsHomed));
-            }
-        }
 
         /// <summary>
         /// Stop all units immediately.
         /// </summary>
-        protected override void ChildStop()
+        protected override void StopImpl()
         {
             _m12.Stop(UnitID.U1);
             _m12.Stop(UnitID.U2);
@@ -237,12 +195,14 @@ namespace APAS.McLib.Irixi
             _m12.Stop(UnitID.U12);
         }
 
-        /// <summary>
-        /// Emergency stop the axes.
-        /// </summary>
-        protected override void ChildEmergencyStop()
+        protected override void StopImpl(int axis)
         {
-            ChildStop();
+            _m12.Stop(AxisIndexToUnitId(axis));
+        }
+
+        protected override void EStopImpl()
+        {
+            StopImpl();
         }
 
         private static void CheckDoChannel(int channel)
@@ -257,7 +217,7 @@ namespace APAS.McLib.Irixi
         /// </summary>
         /// <param name="port">The number of the channel to control, it should be 0 ~ 7.</param>
         /// <param name="isOn"></param>
-        protected override void ChildSetDigitalOutput(int port, bool isOn)
+        protected override void SetDOImpl(int port, bool isOn)
         {
             CheckDoChannel(port);
 
@@ -270,57 +230,54 @@ namespace APAS.McLib.Irixi
         /// Read the state of all outputs.
         /// </summary>
         /// <returns></returns>
-        protected override IReadOnlyList<bool> ChildReadDigitalOutput()
+        protected override bool[] ReadDOImpl()
         {
-            var m12State = _m12.ReadDout();
-
-            var state = new List<bool>();
-            for (var i = 0; i < MaxDigitalOutputChannels; i++) state.Add(m12State.Integrated[i] == DigitalIOStatus.ON);
-
-            return state;
+            var doValues = _m12.ReadDout();
+            return doValues.Integrated
+                .ToList()
+                .Select(x => x == DigitalIOStatus.ON)
+                .ToArray();
         }
 
-        protected override bool ChildReadDigitalOutput(int port)
+        protected override bool ReadDOImpl(int port)
         {
             CheckDoChannel(port);
-
             var m12State = _m12.ReadDout((DigitalOutput) ((int) DigitalOutput.DOUT1 + port));
             return m12State == DigitalIOStatus.ON;
         }
 
-        protected override IReadOnlyList<bool> ChildReadDigitalInput()
+        protected override bool[] ReadDIImpl()
         {
-            var m12State = _m12.ReadDin();
-
-            var state = new List<bool>();
-            for (var i = 0; i < MaxDigitalInputChannels; i++) state.Add(m12State.Integrated[i] == DigitalIOStatus.ON);
-
-            return state;
+            var diValues = _m12.ReadDin();
+            return diValues.Integrated
+                .ToList()
+                .Select(x => x == DigitalIOStatus.ON)
+                .ToArray();
         }
 
-        protected override bool ChildReadDigitalInput(int port)
+        protected override bool ReadDIImpl(int port)
         {
-            var state = ChildReadDigitalInput();
-            return state[port];
+            var diValues = _m12.ReadDin();
+            return diValues.Integrated[port] == DigitalIOStatus.ON;
         }
 
-        protected override IReadOnlyList<double> ChildReadAnalogInput()
+        protected override double[] ReadAIImpl()
         {
             return _m12.ReadAdc(ADCChannels.CH1 | ADCChannels.CH2 | ADCChannels.CH3 | ADCChannels.CH4 |
                                 ADCChannels.CH5 |
                                 ADCChannels.CH6 | ADCChannels.CH7 | ADCChannels.CH8);
         }
 
-        protected override double ChildReadAnalogInput(int port)
+        protected override double ReadAIImpl(int port)
         {
             var ch = ConvertChannelToAdcChannelsEnum(port);
             return _m12.ReadAdc(ch)[0];
         }
 
-        protected override void ChildAutoTouch(int axis, int port, double vth, double distance, double speed)
+        protected override void AutoTouchImpl(int axis, int port, double vth, double distance, double speed)
         {
             var unitId = AxisIndexToUnitId(axis);
-            var currPressure = ReadAnalogInput(port);
+            var currPressure = ReadAIImpl(port);
 
             SetCssThreshold(port, (ushort) (currPressure - vth), (ushort) (currPressure + vth));
 
@@ -352,25 +309,14 @@ namespace APAS.McLib.Irixi
             throw new Exception("unable to touch the target in the specified travel distance.");
         }
 
-        protected override void ChildStartFast1D(int axis, double range, double interval, double speed,
-            int analogCapture,
-            out IEnumerable<Point2D> scanResult)
+        protected override void Fast1DImpl(int axis, double range, double interval, double speed, int capture, out Point2D[] scanResult)
         {
-            ChildStartFast1D(axis, range, interval, speed, analogCapture, out scanResult, -1, out _);
+            Fast1DImpl(axis, range, interval, speed, capture, out scanResult, -1, out _);
         }
 
-        protected void ChildStartFast1D(int axis, double range, double interval, double speed,
-            int analogCapture,
-            out IEnumerable<Point2D> scanResult, 
-            int analogCapture2)
-        {
-            ChildStartFast1D(axis, range, interval, speed, analogCapture, out scanResult, analogCapture2, out _);
-        }
 
-        protected override void ChildStartFast1D(int axis, double range, double interval, double speed,
-            int analogCapture,
-            out IEnumerable<Point2D> scanResult, 
-            int analogCapture2, out IEnumerable<Point2D> scanResult2)
+        protected override void Fast1DImpl(int axis, double range, double interval, double speed,
+            int capture, out Point2D[] scanResult, int capture2, out Point2D[] scanResult2)
         {
             //TODO 解决多台M12模拟量级联的问题
             //if (analogCapture.Parent is IrixiM12BasedAnalogController acM12Based
@@ -379,25 +325,25 @@ namespace APAS.McLib.Irixi
                 var unitId = AxisIndexToUnitId(axis);
 
                 List<M12.Base.Point2D> scanPoints = null, scanPoints2 = null;
-                if (analogCapture2 < 0)
+                if (capture2 < 0)
                     _m12.StartFast1D(unitId, (int) range, (ushort) interval, (byte) speed,
-                        ConvertChannelToAdcChannelsEnum(analogCapture),
+                        ConvertChannelToAdcChannelsEnum(capture),
                         out scanPoints);
                 else
                     _m12.StartFast1D(unitId, (int) range, (ushort) interval, (byte) speed,
-                        ConvertChannelToAdcChannelsEnum(analogCapture),
+                        ConvertChannelToAdcChannelsEnum(capture),
                         out scanPoints,
-                        ConvertChannelToAdcChannelsEnum(analogCapture2),
+                        ConvertChannelToAdcChannelsEnum(capture),
                         out scanPoints2);
 
-                scanResult = scanPoints?.Select(p => new Point2D(p.X, p.Y));
-                scanResult2 = scanPoints2?.Select(p => new Point2D(p.X, p.Y));
+                scanResult = scanPoints?.Select(p => new Point2D(p.X, p.Y)).ToArray();
+                scanResult2 = scanPoints2?.Select(p => new Point2D(p.X, p.Y)).ToArray();
             }
         }
 
-        protected override void ChildStartBlindSearch(int hAxis, int vAxis, double range, double gap,
-            double interval, double hSpeed,
-            double vSpeed, int analogCapture, out IEnumerable<Point3D> scanResult)
+
+        protected override void BlindSearchImpl(int hAxis, int vAxis, double range, double gap,
+            double interval, double hSpeed, double vSpeed, int analogCapture, out Point3D[] scanResult)
         {
             var hUnitId = AxisIndexToUnitId(hAxis);
             var vUnitId = AxisIndexToUnitId(vAxis);
@@ -411,56 +357,41 @@ namespace APAS.McLib.Irixi
             _m12.StartBlindSearch(hArgs, vArgs,
                 ConvertChannelToAdcChannelsEnum(analogCapture), out var scanPoints);
 
-
-            scanResult = scanPoints?.Select(p => new Point3D(p.X, p.Y, p.Z));
+            scanResult = scanPoints?.Select(p => new Point3D(p.X, p.Y, p.Z)).ToArray();
         }
 
-        protected override void ChildDispose()
+        protected override void DisposeImpl()
         {
             if (_m12 != null && _m12.IsOpened)
                 _m12.Close();
         }
 
-        protected override void CheckSpeed(double speed)
+        protected override bool CheckSpeedImpl(double speed, out string reason)
         {
+            reason = "";
+
             if (speed < 0 || speed > 100)
-                throw new ArgumentOutOfRangeException(nameof(speed), "the speed is out of range.");
+                reason = "速度必须为0-100。";
+
+            return !string.IsNullOrEmpty(reason);
         }
 
-        protected override void CheckController()
+        protected override bool CheckControllerImpl(out string reason)
         {
-            base.CheckController();
+            reason = "";
 
             if (_m12 == null)
-                throw new NullReferenceException("the object of the M12 controller is null.");
+                reason = "the object of the M12 controller is null.";
+            else if (!_m12.IsOpened)
+                reason = "the M12 is not connected.";
 
-            if (!_m12.IsOpened)
-                throw new Exception("the M12 is not connected.", null);
+            return !string.IsNullOrEmpty(reason);
         }
 
         #endregion
 
         #region Private Methods
 
-        private void StartBackgroundTask()
-        {
-            Task.Run(() =>
-            {
-                while (true)
-                {
-                    try
-                    {
-                        ChildUpdateStatus();
-                    }
-                    catch (Exception)
-                    {
-                        // ignored
-                    }
-
-                    Thread.Sleep(100);
-                }
-            });
-        }
 
         private static int UnitIdToAxisIndex(UnitID unitId)
         {
