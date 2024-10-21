@@ -47,8 +47,8 @@ namespace APAS.MotionLib.ZMC
         /// <param name="baudRate"></param>
         /// <param name="config"></param>
         /// <param name="logger"></param>
-        public Zmc4Series(string portName, int baudRate, string config, ILog logger = null) : base(portName, baudRate,
-            logger)
+        public Zmc4Series(string portName, int baudRate, string config, ILog logger = null) 
+            : base(portName, baudRate,config, logger)
         {
             var configs = config.Split(',');
             if (configs.Length == 1 || configs.Length == 2)

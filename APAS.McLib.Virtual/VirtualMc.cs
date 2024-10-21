@@ -1,15 +1,11 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using APAS.CoreLib.Charting;
 using APAS.McLib.Sdk;
-using APAS.McLib.Sdk.Core;
-using APAS.McLib.Sdk.Exceptions;
 using log4net;
-using log4net.Core;
 using StatusInfo = APAS.McLib.Sdk.Core.StatusInfo;
 
 
@@ -53,6 +49,11 @@ namespace APAS.McLib.Virtual
             baudRate, config, logger)
         {
             //TODO 此处初始化控制器参数；如果下列参数动态读取，则可在InitImpl()函数中赋值。
+
+            for (var i = 0; i < MAX_SIM_AXIS; i++)
+            {
+                _simAxis[i] = new SimAxis();
+            }
         }
 
         #endregion

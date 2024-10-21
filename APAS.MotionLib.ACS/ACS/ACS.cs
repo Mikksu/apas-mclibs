@@ -31,9 +31,7 @@ namespace APAS.MotionLib.ACS
         #region Variables
 
         private const int MAX_AI_COUNT = 4;
-        private readonly string _configFileMc, _configFileAxis;
-
-        private AcsApi _acs;
+        private readonly AcsApi _acs;
         private AcsAxis[] _axisArr = new AcsAxis[3]; 
 
 
@@ -49,19 +47,8 @@ namespace APAS.MotionLib.ACS
         /// <param name="config"></param>
         /// <param name="logger"></param>
         public ACS(string portName, int baudRate, string config = "", ILog logger = null) 
-            : base(portName, baudRate, logger)
+            : base(portName, baudRate, config, logger)
         {
-            var configs = config.Split(',');
-            if (configs.Length == 2)
-            {
-                _configFileMc = configs[0];
-                _configFileAxis = configs[1];
-            }
-
-            //// 加载自定义配置
-            //string paramPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, _configFileAxis);
-            //ReadParamFile(paramPath, ref _mcConfig);
-
             _acs = new AcsApi();
             
             //TODO 此处初始化控制器参数；如果下列参数动态读取，则可在InitImpl()函数中赋值。
