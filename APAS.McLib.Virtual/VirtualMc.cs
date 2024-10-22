@@ -2,7 +2,6 @@
 using System.Diagnostics;
 using System.Linq;
 using System.Threading;
-using System.Threading.Tasks;
 using APAS.CoreLib.Charting;
 using APAS.McLib.Sdk;
 using log4net;
@@ -28,7 +27,6 @@ namespace APAS.McLib.Virtual
         private readonly bool[] _buffDo = new bool[MAX_SIM_IO];
         private readonly double[] _buffAi = new double[MAX_SIM_IO];
         private readonly double[] _buffAo = new double[MAX_SIM_IO];
-
         private readonly SimAxis[] _simAxis = new SimAxis[MAX_SIM_AXIS];
         private readonly Random _rndPos = new();
 
@@ -70,7 +68,7 @@ namespace APAS.McLib.Virtual
             //TODO 2.读取控制器固件版本，并赋值到属性 FwVersion
 
             //TODO 3.读取每个轴的信息，构建 InnerAxisInfoCollection，包括轴号和固件版本号。
-            
+
         }
 
         /// <summary>
@@ -106,51 +104,57 @@ namespace APAS.McLib.Virtual
         /// <param name="creepSpeed">找到机械原点后返回零位的爬行速度。如不适用请忽略。</param>
         protected override void HomeImpl(int axis, double hiSpeed, double creepSpeed)
         {
-            var ax = _simAxis[axis];
-            if(ax.IsBusy)
+            double posBeforeHome = 0;
+            SimAxis ax = null;
+
+            ax = _simAxis[axis];
+            if (ax.IsBusy)
                 throw new Exception("The axis is busy");
-            
+
+            ax.IsBusy = true;
             ax.Cts = new CancellationTokenSource();
             ax.IsHomed = false;
             ax.IsHoming = true;
-            ax.IsBusy = true;
-            var posBeforeHome = ax.Position;
+            
+            var t = new Thread(()=> HomeSim(ax));
+            t.Name = $"[{PortName}.{axis}] Home Simulation Thread";
+            t.Start();
+        }
 
-            Task.Run(() =>
+        private void HomeSim(SimAxis ax)
+        {
+            try
             {
-                try
+                var posBeforeHome = ax.Position;
+
+                // 随机Home过程需要的时长
+                var r = new Random();
+                var duration = r.NextDouble() * MAX_HOME_SIM_DURATION_S * 60; // 最大5s完成Home
+
+                var sw = new Stopwatch();
+                sw.Start();
+                while (sw.Elapsed.TotalMilliseconds < duration)
                 {
-                    // 随机Home过程需要的时长
-                    var r = new Random();
-                    var duration = r.NextDouble() * MAX_HOME_SIM_DURATION_S * 60; // 最大5s完成Home
+                    ax.Position = posBeforeHome - 10;
 
-                    var sw = new Stopwatch();
-                    sw.Start();
-                    while (sw.Elapsed.TotalMilliseconds < duration)
-                    {
-                        ax.Position = posBeforeHome - 10;
-
-                        Thread.Sleep(100);
-
-                        if (_simAxis[axis].Cts.Token.IsCancellationRequested)
-                            break;
-                    }
-
-                    ax.Position = 0;
-                    ax.IsHomed = true;
-                    
+                    Thread.Sleep(100);
+                    if (ax.Cts.Token.IsCancellationRequested)
+                        break;
                 }
-                catch
-                {
-                    // ignored
-                }
-                finally
-                {
-                    ax.IsHoming = false;
-                    ax.IsBusy = false;
-                }
-                
-            });
+
+                ax.Position = 0;
+                ax.IsHomed = true;
+
+            }
+            catch
+            {
+                // ignored
+            }
+            finally
+            {
+                ax.IsHoming = false;
+                ax.IsBusy = false;
+            }
         }
 
         protected override bool CheckHomeDoneImpl(int axis)
@@ -171,45 +175,46 @@ namespace APAS.McLib.Virtual
             if (ax.IsBusy)
                 throw new Exception("axis is busy.");
 
+            ax.IsBusy = true;
             ax.Cts = new CancellationTokenSource();
-            var step = Math.Abs(speed / 10) * Math.Sign(distance);
-            var distMoved = 0.0;
 
-            Task.Run(() =>
+            var t = new Thread(() => MoveSim(ax, speed, distance));
+            t.Name = $"[{PortName}.{axis}] Move Simulation Thread";
+            t.Start();
+
+        }
+
+        private void MoveSim(SimAxis ax, double speed, double distance)
+        {
+            try
             {
-                ax.IsBusy = true;
-                try
-                {
-                    while (true)
-                    {
-                        if (Math.Abs(distance - distMoved) > Math.Abs(step))
-                        {
-                            ax.Position += step;
-                            distMoved += step;
-                        }
-                        else
-                        {
-                            ax.Position += distance - distMoved;
-                            break;
-                        }
-
-                        if (ax.Cts.Token.IsCancellationRequested)
-                            break;
-
-                        Thread.Sleep(10);
-                    }
-                }
-                catch
-                {
-                    throw;
-                }
-                finally
-                {
-                    ax.IsBusy = false;
-                }
                 
-            });
-            
+                var step = Math.Abs(speed / 10) * Math.Sign(distance);
+                var distMoved = 0.0;
+
+                while (true)
+                {
+                    if (Math.Abs(distance - distMoved) > Math.Abs(step))
+                    {
+                        ax.Position += step;
+                        distMoved += step;
+                    }
+                    else
+                    {
+                        ax.Position += distance - distMoved;
+                        break;
+                    }
+
+                    if (ax.Cts.Token.IsCancellationRequested)
+                        break;
+
+                    Thread.Sleep(10);
+                }
+            }
+            finally
+            {
+                ax.IsBusy = false;
+            }
         }
 
         protected override bool CheckMotionDoneImpl(int axis)
@@ -262,7 +267,7 @@ namespace APAS.McLib.Virtual
         /// <param name="axis">轴号</param>
         protected override void ResetAlarmImpl(int axis)
         {
-           
+
         }
 
 
@@ -275,7 +280,7 @@ namespace APAS.McLib.Virtual
         /// <param name="isOn">是否设置为有效电平</param>
         protected override void SetDOImpl(int port, bool isOn)
         {
-            if (port >= 0 && port < MAX_SIM_IO)
+            if (port is >= 0 and < MAX_SIM_IO)
             {
                 _buffDo[port] = isOn;
             }
@@ -288,7 +293,7 @@ namespace APAS.McLib.Virtual
         /// <returns>端口状态。True表示端口输出为有效电平。</returns>
         protected override bool ReadDOImpl(int port)
         {
-            if (port >= 0 && port < MAX_SIM_IO)
+            if (port is >= 0 and < MAX_SIM_IO)
             {
                 return _buffDo[port];
             }
@@ -488,7 +493,7 @@ namespace APAS.McLib.Virtual
             StopImpl();
         }
 
-        
+
         #endregion
     }
 }

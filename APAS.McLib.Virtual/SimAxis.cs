@@ -4,6 +4,8 @@ namespace APAS.McLib.Virtual
 {
     public class SimAxis
     {
+        //public object SyncRoot { get; } = new();
+
         public double Acc { get; set; }
 
         public double Dec { get; set; }
