@@ -8,7 +8,6 @@ using APAS.McLib.Sdk;
 using log4net;
 using StatusInfo = APAS.McLib.Sdk.Core.StatusInfo;
 
-
 //！ 应用该模板时，请注意将命名空间更改为实际名称。
 namespace APAS.McLib.Virtual
 {
@@ -31,7 +30,7 @@ namespace APAS.McLib.Virtual
         private readonly double[] _buffAo = new double[MAX_SIM_IO];
 
         private readonly SimAxis[] _simAxis = new SimAxis[MAX_SIM_AXIS];
-
+        private readonly Random _rndPos = new();
 
 
         #endregion
@@ -108,6 +107,9 @@ namespace APAS.McLib.Virtual
         protected override void HomeImpl(int axis, double hiSpeed, double creepSpeed)
         {
             var ax = _simAxis[axis];
+            if(ax.IsBusy)
+                throw new Exception("The axis is busy");
+            
             ax.Cts = new CancellationTokenSource();
             ax.IsHomed = false;
             ax.IsHoming = true;
@@ -169,7 +171,7 @@ namespace APAS.McLib.Virtual
             if (ax.IsBusy)
                 throw new Exception("axis is busy.");
 
-            
+            ax.Cts = new CancellationTokenSource();
             var step = Math.Abs(speed / 10) * Math.Sign(distance);
             var distMoved = 0.0;
 
@@ -240,7 +242,7 @@ namespace APAS.McLib.Virtual
         /// <returns>最新绝对位置</returns>
         protected override double ReadPosImpl(int axis)
         {
-            return _simAxis[axis].Position;
+            return _simAxis[axis].Position + _rndPos.NextDouble() / 10;
         }
 
         /// <summary>
