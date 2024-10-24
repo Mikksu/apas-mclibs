@@ -16,6 +16,7 @@ namespace APAS.McLib.Virtual
 
         private const int MAX_SIM_AXIS = 32;
         private const int MAX_SIM_IO = 32;
+        private const double MAX_AI_VALUE_MV = 2500;
 
         /// <summary>
         /// HOME模拟的最大持续时间，单位秒。
@@ -29,6 +30,8 @@ namespace APAS.McLib.Virtual
         private readonly double[] _buffAo = new double[MAX_SIM_IO];
         private readonly SimAxis[] _simAxis = new SimAxis[MAX_SIM_AXIS];
         private readonly Random _rndPos = new();
+
+        private readonly CancellationTokenSource _ctsIOSimTask = new();
 
 
         #endregion
@@ -47,10 +50,15 @@ namespace APAS.McLib.Virtual
         {
             //TODO 此处初始化控制器参数；如果下列参数动态读取，则可在InitImpl()函数中赋值。
 
-            for (var i = 0; i < MAX_SIM_AXIS; i++)
-            {
+            for (var i = 0; i < _simAxis.Length; i++)
                 _simAxis[i] = new SimAxis();
-            }
+
+            var t = new Thread(StartIOSimulation)
+            {
+                Name = "VirtalMC Sim"
+            };
+            t.Start();
+
         }
 
         #endregion
@@ -491,6 +499,43 @@ namespace APAS.McLib.Virtual
         {
             // 结束所有可能正在执行的Move仿真线程。
             StopImpl();
+        }
+
+
+        #endregion
+
+        #region Private Methods
+
+        private void StartIOSimulation()
+        {
+            // AI按sin曲线生成。
+            var lastSinTick = (double)DateTime.Now.TimeOfDay.TotalMilliseconds;
+            // 随机产生AI初始相位。
+            var initAiPhase = _buffAi.Select(x => _rndAIO.NextDouble() * 2 * Math.PI).ToArray();
+
+            while (true)
+            {
+                for (var i = 0; i < _buffDi.Length; i++)
+                    _buffDi[i] = _rndAIO.NextDouble() > 0.5;
+
+                // 生成Sin曲线的AI值
+                for (var i = 0; i < _buffAi.Length; i++)
+                {
+                    _buffAi[i] = MAX_AI_VALUE_MV * Math.Sin(0.001 * lastSinTick + initAiPhase[i]) + _rndAIO.NextDouble() * 0.1;
+                }
+                lastSinTick = (double)DateTime.Now.TimeOfDay.TotalMilliseconds;
+
+                Thread.Sleep(100);
+
+                if (_ctsIOSimTask.Token.IsCancellationRequested)
+                    break;
+            }
+        }
+
+        private void StopIOSimulation()
+        {
+            _ctsIOSimTask.Cancel();
+            Thread.Sleep(100);
         }
 
 
