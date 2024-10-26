@@ -23,13 +23,10 @@ namespace APAS.MotionLib.ZMC.Tests
 		[TestMethod()]
 		public void ACSMotionTest()
 		{
-			
-			var portNameSimulator = "SIMULATOR"; // 连接到模拟器
-			var portNameIP = new IPAddress([10, 0, 0, 100]).ToString(); // 连接到真实IP
 			var X = 0; // X轴编号
 			var Y = 1; // Y轴编号
-			// var acs = new ACS.ACS("10.0.0.100", 701);
-			var acs = new ACS.ACS(portNameSimulator, 701);
+			//var acs = new ACS.ACS("10.0.0.100", 701);
+			var acs = new ACS.ACS("SIMULATOR", 701);
 			acs.UnitTestMotion(X);
 		}
 	}

@@ -50,7 +50,7 @@ namespace APAS.MotionLib.ACS
             : base(portName, baudRate, config, logger)
         {
             _acs = new AcsApi();
-            
+            Axes = new Dictionary<string, IAxis>();
             //TODO 此处初始化控制器参数；如果下列参数动态读取，则可在InitImpl()函数中赋值。
 
         }
@@ -86,10 +86,11 @@ namespace APAS.MotionLib.ACS
             //TODO 如何知道有几个轴？
             // Get the total number of the axes in the current configuration
             var axisCount = (int)_acs.GetAxesCount();
+            axisCount = 3;
             _axisArr = new AcsAxis[axisCount + 1];
             for (var i = 0; i < axisCount; i++)
             {
-                _axisArr[i] = (AcsAxis)i;
+                _axisArr[i] = (AcsAxis)i; ;
             }
             _axisArr[axisCount] = AcsAxis.ACSC_NONE;
 
@@ -163,9 +164,10 @@ namespace APAS.MotionLib.ACS
             if ((sta & ProgramStates.ACSC_PST_COMPILED) == 0)
                 throw new Exception("the homing program is not compiled.");
 
-            _acs.RunBuffer(homeProgBuf, $"HOME_AXIS_{axis}");
+            _acs.RunBuffer(homeProgBuf, $"HOME_{axis}");
         }
 
+        
         protected override bool CheckHomeDoneImpl(int axis)
         {
             var homeProgBuf = ProgramBuffer.ACSC_BUFFER_1;
@@ -173,7 +175,7 @@ namespace APAS.MotionLib.ACS
             var sta = _acs.GetProgramState(homeProgBuf);
             var isHoming = (sta & ProgramStates.ACSC_PST_RUN) > 0;
 
-
+            // 如果轮询到程序执行完成，检查完成结果
             if (!isHoming)
             {
                 // 确保程序执行完成
@@ -279,17 +281,10 @@ namespace APAS.MotionLib.ACS
 
             // 读取报警
             var motionErr = _acs.GetMotionError(ax);
-            var errProg = _acs.GetProgramError(ProgramBuffer.ACSC_BUFFER_ALL);
             if (motionErr != 0)
             {
                 var errStr = _acs.GetErrorString(motionErr);
                 alarms.Add(new AlarmInfo(motionErr, errStr));
-            }
-
-            if (errProg != 0)
-            {
-                var errStr = _acs.GetErrorString(motionErr);
-                alarms.Add(new AlarmInfo(errProg, errStr));
             }
 
             return new StatusInfo(isBusy, isInp, isHomed, isServoOn, alarms.ToArray());
@@ -605,10 +600,10 @@ namespace APAS.MotionLib.ACS
         {
             // 系统变量MFLAGS(axis).#HOME指示Home完成状态。
             // 参考
-            
-            var homeBit = _acs.ReadVariable($"MFLAGS({axis}).#HOME");
-            if(homeBit is int val)
-                return val == 1;
+
+            var mflags = (int)_acs.ReadVariable($"MFLAGS",ProgramBuffer.ACSC_NONE, axis, axis);
+            var homeBit = mflags & (0x1 << 3);
+            return homeBit > 0;
 
             return false;
         }
@@ -644,8 +639,19 @@ namespace APAS.MotionLib.ACS
 
             ServoOn(axis);
 
-            if(GetIsHomedFlag(axis) == false)
+            if (GetIsHomedFlag(axis) == false)
+            {
                 Home(axis, 0, 0);
+                while (true)
+                {
+                    if (CheckHomeDone(axis))
+                        break;
+                }
+
+                var status = ReadStatus(axis);
+                if (status.IsHomed == false)
+                    throw new Exception($"failed to home.");
+            }
 
             SetEsDeceleration(axis, 500);
 
