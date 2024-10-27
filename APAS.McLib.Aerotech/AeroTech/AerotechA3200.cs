@@ -110,7 +110,7 @@ namespace APAS.McLib.Aerotech
             _controller.Commands.Axes[axis].Motion.Home();
         }
 
-        protected override bool CheckHomeDoneImpl(int axis)
+        protected override bool PollHomeDoneImpl(int axis)
         {
             return !_controllerDiagPacket[axis].AxisStatus.Homing;
         }
@@ -120,7 +120,7 @@ namespace APAS.McLib.Aerotech
             _controller.Commands.Motion.MoveInc(axis, distance, speed);
         }
 
-        protected override bool CheckMotionDoneImpl(int axis)
+        protected override bool PollMotionDoneImpl(int axis)
         {
             return _controllerDiagPacket[axis].AxisStatus.MoveDone;
         }

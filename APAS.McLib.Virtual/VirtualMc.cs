@@ -165,7 +165,7 @@ namespace APAS.McLib.Virtual
             }
         }
 
-        protected override bool CheckHomeDoneImpl(int axis)
+        protected override bool PollHomeDoneImpl(int axis)
         {
             return !_simAxis[axis].IsHoming;
         }
@@ -225,7 +225,7 @@ namespace APAS.McLib.Virtual
             }
         }
 
-        protected override bool CheckMotionDoneImpl(int axis)
+        protected override bool PollMotionDoneImpl(int axis)
         {
             return !_simAxis[axis].IsBusy;
         }

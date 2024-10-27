@@ -135,7 +135,7 @@ namespace APAS.McLib.Irixi
             Thread.Sleep(50);
         }
 
-        protected override bool CheckHomeDoneImpl(int axis)
+        protected override bool PollHomeDoneImpl(int axis)
         {
             var stat = _m12.GetUnitState(AxisIndexToUnitId(axis));
             return !stat.IsBusy;
@@ -152,7 +152,7 @@ namespace APAS.McLib.Irixi
             _m12.Move(unitId, mcDistance, mcSpeed);
         }
 
-        protected override bool CheckMotionDoneImpl(int axis)
+        protected override bool PollMotionDoneImpl(int axis)
         {
             var stat = _m12.GetUnitState(AxisIndexToUnitId(axis));
             return !stat.IsBusy;

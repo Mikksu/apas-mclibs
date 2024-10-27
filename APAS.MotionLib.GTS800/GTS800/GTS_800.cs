@@ -178,7 +178,7 @@ namespace APAS__MotionLib_Template
             CommandRtnCheck(rtn, nameof(GT_GoHome));
         }
 
-        protected override bool CheckHomeDoneImpl(int axis)
+        protected override bool PollHomeDoneImpl(int axis)
         {
             var rtn = GT_GetHomeStatus(_mCardId, (short)axis, out var homeStatus);
             CommandRtnCheck(rtn, nameof(GT_GetHomeStatus));
@@ -247,7 +247,7 @@ namespace APAS__MotionLib_Template
         }
 
 
-        protected override bool CheckMotionDoneImpl(int axis)
+        protected override bool PollMotionDoneImpl(int axis)
         {
             var rtn = GT_GetSts(_mCardId, (short)axis, out var status, 1, out var pClock);
             CommandRtnCheck(rtn, nameof(GT_GetSts));

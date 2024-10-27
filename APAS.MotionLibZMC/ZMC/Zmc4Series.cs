@@ -198,7 +198,7 @@ namespace APAS.MotionLib.ZMC
             CommandRtnCheck(rtn, nameof(zmcaux.ZAux_Direct_Single_Datum));
         }
 
-        protected override bool CheckHomeDoneImpl(int axis)
+        protected override bool PollHomeDoneImpl(int axis)
         {
             var status = 0;
             var rtn = zmcaux.ZAux_Direct_GetIfIdle(_hMc, axis, ref status);
@@ -264,7 +264,7 @@ namespace APAS.MotionLib.ZMC
             CommandRtnCheck(rtn, nameof(zmcaux.ZAux_Direct_Single_Move));
         }
 
-        protected override bool CheckMotionDoneImpl(int axis)
+        protected override bool PollMotionDoneImpl(int axis)
         {
             var idleFlag = 0;
 

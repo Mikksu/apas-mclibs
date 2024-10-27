@@ -168,7 +168,7 @@ namespace APAS.MotionLib.ACS
         }
 
         
-        protected override bool CheckHomeDoneImpl(int axis)
+        protected override bool PollHomeDoneImpl(int axis)
         {
             var homeProgBuf = ProgramBuffer.ACSC_BUFFER_1;
 
@@ -211,7 +211,7 @@ namespace APAS.MotionLib.ACS
             _acs.ToPoint(MotionFlags.ACSC_AMF_RELATIVE, (AcsAxis)axis, distance);
         }
 
-        protected override bool CheckMotionDoneImpl(int axis)
+        protected override bool PollMotionDoneImpl(int axis)
         {
             var isIdle = GetIfIdle(axis, out _);
 
@@ -644,7 +644,7 @@ namespace APAS.MotionLib.ACS
                 Home(axis, 0, 0);
                 while (true)
                 {
-                    if (CheckHomeDone(axis))
+                    if (PollMotionDone(axis))
                         break;
                 }
 
