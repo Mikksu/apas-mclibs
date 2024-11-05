@@ -499,6 +499,9 @@ namespace APAS.McLib.Virtual
         {
             // 结束所有可能正在执行的Move仿真线程。
             StopImpl();
+            
+            // 结束IO仿真线程。
+            StopIOSimulation();
         }
 
 
@@ -535,7 +538,6 @@ namespace APAS.McLib.Virtual
         private void StopIOSimulation()
         {
             _ctsIOSimTask.Cancel();
-            Thread.Sleep(100);
         }
 
 
