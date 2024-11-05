@@ -25,8 +25,8 @@ namespace APAS.MotionLib.ZMC.Tests
 		{
 			var X = 0; // X轴编号
 			var Y = 1; // Y轴编号
-			//var acs = new ACS.ACS("10.0.0.100", 701);
-			var acs = new ACS.ACS("SIMULATOR", 701);
+			var acs = new ACS.ACS("10.0.0.100", 701);
+			//var acs = new ACS.ACS("SIMULATOR", 701);
 			acs.UnitTestMotion(X);
 		}
 	}

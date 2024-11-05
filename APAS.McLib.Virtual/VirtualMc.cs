@@ -4,7 +4,7 @@ using System.Linq;
 using System.Threading;
 using APAS.CoreLib.Charting;
 using APAS.McLib.Sdk;
-using log4net;
+using Caliburn.Micro;
 using StatusInfo = APAS.McLib.Sdk.Core.StatusInfo;
 
 //！ 应用该模板时，请注意将命名空间更改为实际名称。

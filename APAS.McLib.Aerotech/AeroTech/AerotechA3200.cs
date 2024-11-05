@@ -10,7 +10,7 @@ using Aerotech.A3200.Status;
 using APAS.CoreLib.Charting;
 using APAS.McLib.Sdk;
 using APAS.McLib.Sdk.Core;
-using log4net;
+using Caliburn.Micro;
 using A3200 = Aerotech.A3200.Controller;
 
 namespace APAS.McLib.Aerotech

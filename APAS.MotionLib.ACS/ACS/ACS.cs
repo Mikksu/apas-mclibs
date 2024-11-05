@@ -1,16 +1,15 @@
 ﻿using ACS.SPiiPlusNET;
 using APAS.McLib.Sdk;
 using APAS.McLib.Sdk.Exceptions;
-using log4net;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Net;
 using System.Threading;
-using System.Threading.Tasks;
 using APAS.CoreLib.Charting;
 using APAS.McLib.Sdk.Core;
+using Caliburn.Micro;
 using AcsApi = ACS.SPiiPlusNET.Api;
 using AcsAxis = ACS.SPiiPlusNET.Axis;
 
@@ -32,11 +31,11 @@ namespace APAS.MotionLib.ACS
 
         private const int MAX_AI_COUNT = 4;
         private readonly AcsApi _acs;
-        private AcsAxis[] _axisArr = new AcsAxis[3]; 
+        private AcsAxis[] _axisArr = new AcsAxis[3];
 
 
         #endregion
-        
+
         #region Constructors
 
         /// <summary>
@@ -46,7 +45,7 @@ namespace APAS.MotionLib.ACS
         /// <param name="baudRate"></param>
         /// <param name="config"></param>
         /// <param name="logger"></param>
-        public ACS(string portName, int baudRate, string config = "", ILog logger = null) 
+        public ACS(string portName, int baudRate, string config = "", ILog logger = null)
             : base(portName, baudRate, config, logger)
         {
             _acs = new AcsApi();
@@ -76,9 +75,9 @@ namespace APAS.MotionLib.ACS
             //TODO 4.需要完成函数 ReadStatusImpl()，否则会报NotImplementException异常。
 
             // Connect to the controller
-            if(PortName == "SIMULATOR")
+            if (PortName == "SIMULATOR")
                 _acs.OpenCommSimulator();
-            else if(IPAddress.TryParse(PortName, out var ip))
+            else if (IPAddress.TryParse(PortName, out var ip))
                 _acs.OpenCommEthernetTCP(ip.ToString(), BaudRate);
             else
                 throw new ArgumentException($"IP地址格式错误。", nameof(PortName));
@@ -90,8 +89,10 @@ namespace APAS.MotionLib.ACS
             _axisArr = new AcsAxis[axisCount + 1];
             for (var i = 0; i < axisCount; i++)
             {
-                _axisArr[i] = (AcsAxis)i; ;
+                _axisArr[i] = (AcsAxis)i;
+                ;
             }
+
             _axisArr[axisCount] = AcsAxis.ACSC_NONE;
 
 
@@ -167,7 +168,7 @@ namespace APAS.MotionLib.ACS
             _acs.RunBuffer(homeProgBuf, $"HOME_{axis}");
         }
 
-        
+
         protected override bool PollHomeDoneImpl(int axis)
         {
             var homeProgBuf = ProgramBuffer.ACSC_BUFFER_1;
@@ -178,15 +179,23 @@ namespace APAS.MotionLib.ACS
             // 如果轮询到程序执行完成，检查完成结果
             if (!isHoming)
             {
-                // 确保程序执行完成
-                _acs.WaitProgramEnd(homeProgBuf, -1);
-                var isProgErr = _acs.GetProgramError(homeProgBuf);
-                if (isProgErr == 0)
-                {
-                    // Home完成后可能会报 ACSC_SAFETY_PE错误，需要清除；否则Move函数在最后阶段检查Fault时会报错。
-                    _acs.FaultClear((AcsAxis)axis);
-                }
+                    // 确保程序执行完成
+                    _acs.WaitProgramEnd(homeProgBuf, -1);
+                    var isProgErr = _acs.GetProgramError(homeProgBuf);
+                    if (isProgErr == 0)
+                    {
+                        // Home完成后可能会报 ACSC_SAFETY_PE错误，需要清除；否则Move函数在最后阶段检查Fault时会报错。
+                        _acs.FaultClear((AcsAxis)axis);
+                    }
+
+                    // 等待轴停止移动
+                    var isIdle = GetIfIdle(axis, out _);
+                    if (!isIdle)
+                        isHoming = true;
             }
+
+            if(!isHoming)
+                _acs.WaitMotionEnd((AcsAxis)axis, 5000);
 
             return !isHoming;
         }
@@ -201,10 +210,10 @@ namespace APAS.MotionLib.ACS
         protected override void MoveImpl(int axis, double speed, double distance)
         {
             /*
-             * 耗时操作。当执行操作时，请轮询轴状态，并调用 RaiseAxisStatusUpdatedEvent(new AxisStatusUpdatedArgs(axis, xxx)); 
-             * 以实时刷新UI上的位置。       
-            */
-      
+             * 耗时操作。当执行操作时，请轮询轴状态，并调用 RaiseAxisStatusUpdatedEvent(new AxisStatusUpdatedArgs(axis, xxx));
+             * 以实时刷新UI上的位置。
+             */
+
             PreMove(axis);
 
             _acs.SetVelocity((AcsAxis)axis, speed);
@@ -218,7 +227,7 @@ namespace APAS.MotionLib.ACS
             if (isIdle)
             {
                 // 确保运动完成。
-                _acs.WaitMotionEnd((AcsAxis)axis, 1000);
+                _acs.WaitMotionEnd((AcsAxis)axis, 5000);
             }
 
             return isIdle;
@@ -336,8 +345,8 @@ namespace APAS.MotionLib.ACS
 
             throw new Exception($"返回的数据格式错误，{ret}");
         }
-        
-        
+
+
         #endregion
 
         /// <summary>
@@ -387,11 +396,11 @@ namespace APAS.MotionLib.ACS
             scanResult2 = null;
 
             var varName = "Fast1DDataArray";
-            var nVars = 2;  // 采集的数据种类
-            var nSamples = 50000;   // 最大采样数
+            var nVars = 2; // 采集的数据种类
+            var nSamples = 50000; // 最大采样数
 
             _acs.ClearVariables();
-            
+
             if (catpure2 < 0)
             {
                 var mVarName = $"{varName}({nVars})({nSamples})";
@@ -409,7 +418,7 @@ namespace APAS.MotionLib.ACS
                 nVars = 3;
                 nSamples = 33000;
                 var mVarName = $"{varName}({nVars})({nSamples})";
-                
+
                 _acs.DeclareVariable(AcsplVariableType.ACSC_REAL_TYPE, mVarName);
 
                 _acs.DataCollectionExt(DataCollectionFlags.ACSC_DCF_WAIT,
@@ -420,7 +429,7 @@ namespace APAS.MotionLib.ACS
                     $"FPOS({axis})\rAIN({catpure})\rAIN({catpure2})");
             }
 
-            
+
             Move(axis, speed, range);
 
             _acs.StopCollect();
@@ -430,7 +439,7 @@ namespace APAS.MotionLib.ACS
 
             // 采样点的总数
             var sdcnRet = _acs.ReadVariable("S_DCN");
-            if((double.TryParse(sdcnRet.ToString(), out var nBuffered)) == false)
+            if ((double.TryParse(sdcnRet.ToString(), out var nBuffered)) == false)
                 throw new Exception($"DataCollection返回的数组长度错误，{sdcnRet}");
 
             // 读 DC Buffer
@@ -443,7 +452,7 @@ namespace APAS.MotionLib.ACS
             {
                 point2Ds1.Add(new Point2D(dcBuff[0, i], dcBuff[1, i]));
 
-                if(catpure2 >= 0)
+                if (catpure2 >= 0)
                     point2Ds2.Add(new Point2D(dcBuff[0, i], dcBuff[2, i]));
             }
 
@@ -469,9 +478,14 @@ namespace APAS.MotionLib.ACS
 
             foreach (var ax in _axisArr)
             {
-                if (ax != AcsAxis.ACSC_NONE) 
+                if (ax != AcsAxis.ACSC_NONE)
                     _acs.WaitMotionEnd(ax, 1000);
             }
+        }
+
+        protected override void StopImpl(int axis)
+        {
+            _acs.Halt((AcsAxis)axis);
         }
 
         protected override void EStopImpl()
@@ -508,7 +522,7 @@ namespace APAS.MotionLib.ACS
         {
             // 检查轴是否正在运动
             if (!GetIfIdle(axis, out var motorSta))
-                throw new Exception($"轴[{axis}]正在运动。");
+                throw new Exception($"轴[{axis}]正在运动，状态0x{motorSta:X}");
 
             // 检查轴是否使能
             if (isCheckServoOn)
@@ -534,7 +548,9 @@ namespace APAS.MotionLib.ACS
         private bool GetIfIdle(int axis, out MotorStates states)
         {
             states = _acs.GetMotorState((AcsAxis)axis);
-            return (states & MotorStates.ACSC_MST_MOVE) == 0;
+            return (states & MotorStates.ACSC_MST_MOVE) == 0 
+                && (states & MotorStates.ACSC_MST_ACC) == 0
+                && (states & MotorStates.ACSC_MST_INPOS) == MotorStates.ACSC_MST_INPOS;
         }
 
         private void GetAxisError(int axis)
@@ -601,7 +617,7 @@ namespace APAS.MotionLib.ACS
             // 系统变量MFLAGS(axis).#HOME指示Home完成状态。
             // 参考
 
-            var mflags = (int)_acs.ReadVariable($"MFLAGS",ProgramBuffer.ACSC_NONE, axis, axis);
+            var mflags = (int)_acs.ReadVariable($"MFLAGS", ProgramBuffer.ACSC_NONE, axis, axis);
             var homeBit = mflags & (0x1 << 3);
             return homeBit > 0;
 
@@ -639,54 +655,47 @@ namespace APAS.MotionLib.ACS
 
             ServoOn(axis);
 
-            if (GetIsHomedFlag(axis) == false)
-            {
-                Home(axis, 0, 0);
-                while (true)
-                {
-                    if (PollMotionDone(axis))
-                        break;
-                }
 
-                var status = ReadStatus(axis);
-                if (status.IsHomed == false)
-                    throw new Exception($"failed to home.");
+            Home(axis, 1, 1);
+            while (true)
+            {
+                if (PollHomeDone(axis))
+                    break;
             }
+
+            var status = ReadStatus(axis);
+            if (status.IsHomed == false)
+                throw new Exception($"failed to home.");
+
 
             SetEsDeceleration(axis, 500);
 
-
             SetAcceleration(axis, 100);
             SetDeceleration(axis, 100);
 
-            SetAcceleration(axis, 100);
-            SetDeceleration(axis, 100);
-            Move(axis, 200, 100);
+            Move(axis, 20, 50);
+            while(!PollMotionDone(axis))
+                Thread.Sleep(1);
 
-            SetAcceleration(axis, 500);
-            SetDeceleration(axis, 500);
+            Move(axis, 100, -50);
+            while (!PollMotionDone(axis))
+                Thread.Sleep(1);
 
-            Task.Run(() =>
-            {
-                try
-                {
-                    Move(0, 100, -100);
-                }
-                catch (StoppedByUserException ex)
-                {
-                    Debug.WriteLine($"Stopped by user, {ex.Message}");
-                }
-            });
+            Stop(axis);
+            while (!PollMotionDone(axis))
+                Thread.Sleep(1);
 
-
-            Thread.Sleep(200);
-
-            Stop();
+            SetAcceleration(axis, 5000);
+            SetDeceleration(axis, 5000);
 
 
             for (int i = 0; i < 100; i++)
             {
-                Move(0, 30, 0.0001);
+                Move(0, 500, 0.01);
+                while (!PollMotionDone(axis))
+                    Thread.Sleep(1);
+
+                Debug.WriteLine($"POS {ReadPos(axis)}", "MOVE");
             }
         }
 

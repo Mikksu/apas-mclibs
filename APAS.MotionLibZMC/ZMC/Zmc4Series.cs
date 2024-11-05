@@ -2,7 +2,6 @@
 using APAS.McLib.Sdk.Core;
 using APAS.MotionLib.ZMC.Configuration;
 using cszmcaux;
-using log4net;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
@@ -13,6 +12,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using APAS.CoreLib.Charting;
+using Caliburn.Micro;
 
 /*
  注意：
