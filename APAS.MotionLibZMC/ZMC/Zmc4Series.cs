@@ -28,6 +28,8 @@ namespace APAS.MotionLib.ZMC
     public class Zmc4Series : MotionControllerBase
     {
         #region Variables
+
+        private const int IDLE_FLAG = -1;
         
         private IntPtr _hMc;
         private readonly string _configFileAxis = "Zmc4SeriesConf.json";
@@ -200,11 +202,11 @@ namespace APAS.MotionLib.ZMC
 
         protected override bool PollHomeDoneImpl(int axis)
         {
-            var status = 0;
-            var rtn = zmcaux.ZAux_Direct_GetIfIdle(_hMc, axis, ref status);
+            var isIdle = IDLE_FLAG;
+            var rtn = zmcaux.ZAux_Direct_GetIfIdle(_hMc, axis, ref isIdle);
             CommandRtnCheck(rtn, nameof(zmcaux.ZAux_Direct_GetIfIdle));
 
-            var isHomeDone = status == 0;
+            var isHomeDone = isIdle == IDLE_FLAG;
             if (isHomeDone)
             {
                 var isAlarm = CheckAlarm(axis, out var alarm);
@@ -266,11 +268,11 @@ namespace APAS.MotionLib.ZMC
 
         protected override bool PollMotionDoneImpl(int axis)
         {
-            var idleFlag = 0;
+            var isIdle = IDLE_FLAG;
 
-            var rtn = zmcaux.ZAux_Direct_GetIfIdle(_hMc, axis, ref idleFlag);
+            var rtn = zmcaux.ZAux_Direct_GetIfIdle(_hMc, axis, ref isIdle);
             CommandRtnCheck(rtn, nameof(zmcaux.ZAux_Direct_GetIfIdle));
-            return idleFlag == 1;
+            return isIdle == IDLE_FLAG;
         }
 
         /// <summary>
@@ -317,10 +319,10 @@ namespace APAS.MotionLib.ZMC
         protected override StatusInfo ReadStatusImpl(int axis)
         {
             // 检查轴是否正忙
-            var busyFlag = 0;
-            var rtn = zmcaux.ZAux_Direct_GetIfIdle(_hMc, axis, ref busyFlag);
+            var isIdle = IDLE_FLAG;
+            var rtn = zmcaux.ZAux_Direct_GetIfIdle(_hMc, axis, ref isIdle);
             CommandRtnCheck(rtn, nameof(zmcaux.ZAux_Direct_GetIfIdle));
-            var isBusy = busyFlag == 0;
+            var isBusy = isIdle == IDLE_FLAG;
 
             var isInp = !isBusy;
 
