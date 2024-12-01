@@ -10,7 +10,6 @@ using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading;
-using System.Threading.Tasks;
 using APAS.CoreLib.Charting;
 using Caliburn.Micro;
 
@@ -32,6 +31,7 @@ namespace APAS.MotionLib.ZMC
         private IntPtr _hMc;
         private readonly string _configFileAxis = "Zmc4SeriesConf.json";
         private readonly McConfig _mcConfig;
+        private int _maxDiCount;
         private int _maxAxis;
         private int _maxAO;
         private int _maxAI;
@@ -100,12 +100,14 @@ namespace APAS.MotionLib.ZMC
                 _maxAxis = 6;
                 _maxAO = 2;
                 _maxAI = 2;
+                _maxDiCount = 16;
             }
             else if (model.StartsWith("412"))
             {
                 _maxAxis = 12;
                 _maxAO = 2;
                 _maxAI = 2;
+                _maxDiCount = 24;
             }
 
             // 如果上次程序没有退出，可能还有正在运动的轴，
@@ -487,10 +489,10 @@ namespace APAS.MotionLib.ZMC
         protected override bool[] ReadDIImpl()
         {
             var outputStatus = new int[1];
-            var rtn = zmcaux.ZAux_Direct_GetInMulti(_hMc, 0, 15, outputStatus);
+            var rtn = zmcaux.ZAux_Direct_GetInMulti(_hMc, 0, _maxDiCount - 1, outputStatus);
             CommandRtnCheck(rtn, nameof(zmcaux.ZAux_Direct_GetInMulti));
-            var states = new bool[16];
-            for (var i = 0; i < 16; i++)
+            var states = new bool[_maxDiCount];
+            for (var i = 0; i < _maxDiCount; i++)
             {
                 states[i] = (outputStatus[0] & (1 << i)) != 0;
             }
