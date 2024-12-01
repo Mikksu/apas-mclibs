@@ -27,6 +27,8 @@ namespace APAS.MotionLib.ZMC
     public class Zmc4Series : MotionControllerBase
     {
         #region Variables
+
+        private const int IDLE_FLAG = -1;
         
         private IntPtr _hMc;
         private readonly string _configFileAxis = "Zmc4SeriesConf.json";
@@ -202,43 +204,44 @@ namespace APAS.MotionLib.ZMC
 
         protected override bool PollHomeDoneImpl(int axis)
         {
-            var status = 0;
-            var rtn = zmcaux.ZAux_Direct_GetIfIdle(_hMc, axis, ref status);
+            var isIdle = IDLE_FLAG;
+            var rtn = zmcaux.ZAux_Direct_GetIfIdle(_hMc, axis, ref isIdle);
             CommandRtnCheck(rtn, nameof(zmcaux.ZAux_Direct_GetIfIdle));
 
-            var isHomeDone = status == 0;
-            if (isHomeDone)
-            {
-                var isAlarm = CheckAlarm(axis, out var alarm);
-                if (!isAlarm)
-                {
-                    var movParam = FindAxisConfig(axis, _mcConfig)?.Motion;
-                    if (movParam == null)
-                        throw new NullReferenceException($"unable to find the config of the axis ({axis}).");
+            if (isIdle != IDLE_FLAG)
+                return false;
 
-                    // 清空位置
-                    rtn = zmcaux.ZAux_Direct_SetMpos(_hMc, axis, 0);
-                    CommandRtnCheck(rtn, nameof(zmcaux.ZAux_Direct_SetMpos));
+            // 如果Idle，检查是否存在错误。
+            var isAlarm = CheckAlarm(axis, out var alarm);
+            if (isAlarm)
+                throw new Exception(alarm.Message); // 报错
 
-                    rtn = zmcaux.ZAux_Direct_SetDpos(_hMc, axis, 0);
-                    CommandRtnCheck(rtn, nameof(zmcaux.ZAux_Direct_SetDpos));
+            var movParam = FindAxisConfig(axis, _mcConfig)?.Motion;
+            if (movParam == null)
+                throw new NullReferenceException($"unable to find the config of the axis ({axis}).");
 
-                    // 将该轴标记为已Home
-                    rtn = zmcaux.ZAux_Modbus_Set0x(_hMc, (ushort)axis, 1, new byte[] { 1 });
-                    CommandRtnCheck(rtn, nameof(zmcaux.ZAux_Modbus_Set0x));
+            
+            
+            // 清空位置
+            rtn = zmcaux.ZAux_Direct_SetMpos(_hMc, axis, 0);
+            CommandRtnCheck(rtn, nameof(zmcaux.ZAux_Direct_SetMpos));
 
-                    // 将加速度设置为Move使用的加速度
-                    rtn = zmcaux.ZAux_Direct_SetAccel(_hMc, axis, (float)movParam.Acc);
-                    CommandRtnCheck(rtn, nameof(zmcaux.ZAux_Direct_SetAccel));
+            rtn = zmcaux.ZAux_Direct_SetDpos(_hMc, axis, 0);
+            CommandRtnCheck(rtn, nameof(zmcaux.ZAux_Direct_SetDpos));
 
-                    rtn = zmcaux.ZAux_Direct_SetDecel(_hMc, axis, (float)movParam.Dec);
-                    CommandRtnCheck(rtn, nameof(zmcaux.ZAux_Direct_SetDecel));
+            // 将该轴标记为已Home
+            rtn = zmcaux.ZAux_Modbus_Set0x(_hMc, (ushort)axis, 1, new byte[] { 1 });
+            CommandRtnCheck(rtn, nameof(zmcaux.ZAux_Modbus_Set0x));
 
-                    return true;
-                }
-            }
+            // 将加速度设置为Move使用的加速度
+            rtn = zmcaux.ZAux_Direct_SetAccel(_hMc, axis, (float)movParam.Acc);
+            CommandRtnCheck(rtn, nameof(zmcaux.ZAux_Direct_SetAccel));
 
-            return false;
+            rtn = zmcaux.ZAux_Direct_SetDecel(_hMc, axis, (float)movParam.Dec);
+            CommandRtnCheck(rtn, nameof(zmcaux.ZAux_Direct_SetDecel));
+
+            return true;
+
         }
 
         /// <summary>
@@ -268,11 +271,11 @@ namespace APAS.MotionLib.ZMC
 
         protected override bool PollMotionDoneImpl(int axis)
         {
-            var idleFlag = 0;
+            var isIdle = IDLE_FLAG;
 
-            var rtn = zmcaux.ZAux_Direct_GetIfIdle(_hMc, axis, ref idleFlag);
+            var rtn = zmcaux.ZAux_Direct_GetIfIdle(_hMc, axis, ref isIdle);
             CommandRtnCheck(rtn, nameof(zmcaux.ZAux_Direct_GetIfIdle));
-            return idleFlag == 1;
+            return isIdle == IDLE_FLAG;
         }
 
         /// <summary>
@@ -319,10 +322,10 @@ namespace APAS.MotionLib.ZMC
         protected override StatusInfo ReadStatusImpl(int axis)
         {
             // 检查轴是否正忙
-            var busyFlag = 0;
-            var rtn = zmcaux.ZAux_Direct_GetIfIdle(_hMc, axis, ref busyFlag);
+            var isIdle = IDLE_FLAG;
+            var rtn = zmcaux.ZAux_Direct_GetIfIdle(_hMc, axis, ref isIdle);
             CommandRtnCheck(rtn, nameof(zmcaux.ZAux_Direct_GetIfIdle));
-            var isBusy = busyFlag == 0;
+            var isBusy = isIdle == IDLE_FLAG;
 
             var isInp = !isBusy;
 
