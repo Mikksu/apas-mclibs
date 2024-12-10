@@ -32,9 +32,6 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="ACS.SPiiPlusNET">
-      <HintPath>..\..\Dependencies\ACS\ACS.SPiiPlusNET.dll</HintPath>
-    </Reference>
     <Reference Include="ACS.SPiiPlusNET, Version=3.10.0.17445, Culture=neutral, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
       <HintPath>Dependencies\ACS.SPiiPlusNET.dll</HintPath>
