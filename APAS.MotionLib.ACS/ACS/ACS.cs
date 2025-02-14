@@ -521,10 +521,8 @@ namespace APAS.MotionLib.ACS
         private void PreMove(int axis, bool isCheckServoOn = true)
         {
             // 检查轴是否正在运动
-            /*if (!GetIfIdle(axis, out var motorSta))
-                throw new Exception($"轴[{axis}]正在运动，状态0x{motorSta:X}");*/
-
-            GetIfIdle(axis, out var motorSta);
+            if (!GetIfIdle(axis, out var motorSta))
+                throw new Exception($"轴[{axis}]正在运动，状态0x{motorSta:X}");
 
             // 检查轴是否使能
             if (isCheckServoOn)
