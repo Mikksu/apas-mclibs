@@ -95,17 +95,13 @@ namespace APAS.MotionLib.ACS
 
             _axisArr[axisCount] = AcsAxis.ACSC_NONE;
 
-
+            // Servo On 所有轴
+            for (var i = 0; i < axisCount; i++)
+                ServoOnImpl(i);
 
             // 如果上次程序没有退出，可能还有正在运动的轴，
             // 先执行一次急停，确保左右轴均处于停止状态；否则下面的ChildServoOn异常。
             EStopImpl();
-
-            //ApplyConfig(_hMc, _mcConfig);
-
-            // Servo On 所有轴
-            for (var i = 0; i < axisCount; i++)
-                ServoOnImpl(i);
         }
 
         /// <summary>
@@ -239,7 +235,7 @@ namespace APAS.MotionLib.ACS
         /// <param name="axis">轴号</param>
         protected override void ServoOnImpl(int axis)
         {
-            PreMove(axis, false);
+            //PreMove(axis, false);
             _acs.Enable((AcsAxis)axis);
             _acs.WaitMotorEnabled((AcsAxis)axis, 1, 5000);
         }
