@@ -302,6 +302,27 @@ namespace APAS.MotionLib.ZMC
             SetDOImpl(_mcConfig.Axes[axis].Io.ServoOn, false);
         }
 
+        protected override void StopImpl(int axis)
+        {
+            var rtn = zmcaux.ZAux_Direct_Single_Cancel(_hMc, axis, 4); // 以DEC减速到停止
+            CommandRtnCheck(rtn, nameof(zmcaux.ZAux_Direct_Rapidstop));
+        }
+
+        /// <summary>
+        /// 停止所有轴移动。
+        /// </summary>
+        protected override void StopImpl()
+        {
+            var rtn = zmcaux.ZAux_Direct_Rapidstop(_hMc, 4); // 以DEC减速到停止
+            CommandRtnCheck(rtn, nameof(zmcaux.ZAux_Direct_Rapidstop));
+        }
+
+        protected override void EStopImpl()
+        {
+            var rtn = zmcaux.ZAux_Direct_Rapidstop(_hMc, 2);  // 以FASTDEC减速到停止
+            CommandRtnCheck(rtn, nameof(zmcaux.ZAux_Direct_Rapidstop));
+        }
+
         /// <summary>
         /// 读取最新的绝对位置。
         /// </summary>
@@ -694,26 +715,6 @@ namespace APAS.MotionLib.ZMC
             }
         }
 
-
-        /// <summary>
-        /// 停止所有轴移动。
-        /// </summary>
-        protected override void StopImpl()
-        {
-            int rtn;
-            for (var i = 0; i < _maxAxis; i++)
-            {
-                rtn = zmcaux.ZAux_Direct_Single_Cancel(_hMc, i, 0);
-                //CommandRtnCheck(rtn, "ZAux_Direct_Single_Cancel");
-            }
-
-        }
-
-        protected override void EStopImpl()
-        {
-            var rtn = zmcaux.ZAux_Direct_Rapidstop(_hMc, 2);
-            CommandRtnCheck(rtn, nameof(zmcaux.ZAux_Direct_Rapidstop));
-        }
 
         /// <summary>
         /// 关闭运动控制器，并销毁运动控制器实例。
