@@ -212,13 +212,18 @@ namespace APAS.MotionLib.ZMC
             // 如果Idle，检查是否存在错误。
             var isAlarm = CheckAlarm(axis, out var alarm);
             if (isAlarm)
-                throw new Exception(alarm.Message); // 报错
+            {
+                if ((alarm.Code & 0x800) > 0x0)
+                {
+                    return true; // 用户取消操作。
+                }
+                else
+                    throw new Exception(alarm.Message); // 报错
+            }
 
             var movParam = FindAxisConfig(axis, _mcConfig)?.Motion;
             if (movParam == null)
                 throw new NullReferenceException($"unable to find the config of the axis ({axis}).");
-
-            
             
             // 清空位置
             rtn = zmcaux.ZAux_Direct_SetMpos(_hMc, axis, 0);
@@ -237,6 +242,10 @@ namespace APAS.MotionLib.ZMC
 
             rtn = zmcaux.ZAux_Direct_SetDecel(_hMc, axis, (float)movParam.Dec);
             CommandRtnCheck(rtn, nameof(zmcaux.ZAux_Direct_SetDecel));
+
+            //rtn = zmcaux.ZAux_Direct_SetSpeed(_hMc, axis, (float)movParam.Speed);
+            //CommandRtnCheck(rtn, nameof(zmcaux.ZAux_Direct_SetSpeed));
+
 
             return true;
 
@@ -383,6 +392,8 @@ namespace APAS.MotionLib.ZMC
 
             if (errCode == 0)
                 return false;
+            else if ((errCode & 0x800) > 0) //人为停止
+                errInfo = "运动已被用户取消";
             else if ((errCode & 0x2) > 0)
                 errInfo = "随动误差超限报警";
             else if ((errCode & 0x4) > 0)
@@ -403,8 +414,6 @@ namespace APAS.MotionLib.ZMC
                 errInfo = "超过正向软限位";
             else if ((errCode & 0x400) > 0)
                 errInfo = "超过负向软限位";
-            //else if ((errCode & 0x800) > 0)
-                // 人为停止
             else if ((errCode & 0x1000) > 0)
                 errInfo = "脉冲频率超过MAX_SPEED限制";
             else if ((errCode & 0x4000) > 0)
@@ -417,6 +426,8 @@ namespace APAS.MotionLib.ZMC
                 errInfo = "报警信号输入";
             else if ((errCode & 0x800000) > 0)
                 errInfo = "轴进入暂停状态";
+            else
+                errInfo = $"未定义的错误代码{errCode}";
 
             alarm = new AlarmInfo(errCode, errInfo);
             return true;
@@ -823,78 +834,78 @@ namespace APAS.MotionLib.ZMC
 
         }
 
-        /// <summary>
-        /// 应用配置文件对轴卡进行配置
-        /// </summary>
-        /// <param name="cardHandle"></param>
-        /// <param name="cardParam"></param>
-        private void ApplyConfig(IntPtr cardHandle, McConfig cardParam)
-        {
-            int rtn;
-            foreach (var cfg in cardParam.Axes)
-            {
-                if (cfg.Control.Index < 0)
-                {
-                    break;
-                }
+        ///// <summary>
+        ///// 应用配置文件对轴卡进行配置
+        ///// </summary>
+        ///// <param name="cardHandle"></param>
+        ///// <param name="cardParam"></param>
+        //private void ApplyConfig(IntPtr cardHandle, McConfig cardParam)
+        //{
+        //    int rtn;
+        //    foreach (var cfg in cardParam.Axes)
+        //    {
+        //        if (cfg.Control.Index < 0)
+        //        {
+        //            break;
+        //        }
 
-                if (cfg.Control.AxisType > 0)
-                {
-                    rtn = zmcaux.ZAux_Direct_SetAtype(cardHandle, cfg.Control.Index, cfg.Control.AxisType);
-                    CommandRtnCheck(rtn, "ZAux_Direct_SetAtype in LoadParam Function");
-                }
+        //        if (cfg.Control.AxisType > 0)
+        //        {
+        //            rtn = zmcaux.ZAux_Direct_SetAtype(cardHandle, cfg.Control.Index, cfg.Control.AxisType);
+        //            CommandRtnCheck(rtn, "ZAux_Direct_SetAtype in LoadParam Function");
+        //        }
 
-                if (cfg.Control.AxisType > -1)
-                {
-                    rtn = zmcaux.ZAux_Direct_SetInvertStep(cardHandle, cfg.Control.Index, cfg.Control.AxisType);
-                    CommandRtnCheck(rtn, nameof(zmcaux.ZAux_Direct_SetInvertStep));
-                }
+        //        if (cfg.Control.AxisType > -1)
+        //        {
+        //            rtn = zmcaux.ZAux_Direct_SetInvertStep(cardHandle, cfg.Control.Index, cfg.Control.AxisType);
+        //            CommandRtnCheck(rtn, nameof(zmcaux.ZAux_Direct_SetInvertStep));
+        //        }
 
-                if (cfg.Control.Units > 0)
-                {
-                    rtn = zmcaux.ZAux_Direct_SetUnits(cardHandle, cfg.Control.Index, cfg.Control.Units);
-                    CommandRtnCheck(rtn, "ZAux_Direct_SetUnits in LoadParam Function");
-                }
+        //        if (cfg.Control.Units > 0)
+        //        {
+        //            rtn = zmcaux.ZAux_Direct_SetUnits(cardHandle, cfg.Control.Index, cfg.Control.Units);
+        //            CommandRtnCheck(rtn, "ZAux_Direct_SetUnits in LoadParam Function");
+        //        }
 
-                if (cfg.Io.Org > -1)
-                {
-                    rtn = zmcaux.ZAux_Direct_SetDatumIn(cardHandle, cfg.Control.Index, cfg.Io.Org);
-                    CommandRtnCheck(rtn, nameof(zmcaux.ZAux_Direct_SetDatumIn));
+        //        if (cfg.Io.Org > -1)
+        //        {
+        //            rtn = zmcaux.ZAux_Direct_SetDatumIn(cardHandle, cfg.Control.Index, cfg.Io.Org);
+        //            CommandRtnCheck(rtn, nameof(zmcaux.ZAux_Direct_SetDatumIn));
 
-                    rtn = zmcaux.ZAux_Direct_SetInvertIn(cardHandle, cfg.Io.Org, cfg.Io.InvOrg ? 1 : 0);
-                    CommandRtnCheck(rtn, nameof(zmcaux.ZAux_Direct_SetInvertIn));
-                }
+        //            rtn = zmcaux.ZAux_Direct_SetInvertIn(cardHandle, cfg.Io.Org, cfg.Io.InvOrg ? 1 : 0);
+        //            CommandRtnCheck(rtn, nameof(zmcaux.ZAux_Direct_SetInvertIn));
+        //        }
 
-                if (cfg.Io.Pel > -1)
-                {
-                    rtn = zmcaux.ZAux_Direct_SetFwdIn(cardHandle, cfg.Control.Index, cfg.Io.Pel);
-                    CommandRtnCheck(rtn, "ZAux_Direct_SetFwdIn in LoadParam Function");
+        //        if (cfg.Io.Pel > -1)
+        //        {
+        //            rtn = zmcaux.ZAux_Direct_SetFwdIn(cardHandle, cfg.Control.Index, cfg.Io.Pel);
+        //            CommandRtnCheck(rtn, "ZAux_Direct_SetFwdIn in LoadParam Function");
 
-                    rtn = zmcaux.ZAux_Direct_SetInvertIn(cardHandle, cfg.Io.Pel, cfg.Io.InvPel ? 1 : 0);
-                    CommandRtnCheck(rtn, nameof(zmcaux.ZAux_Direct_SetInvertIn));
-                }
+        //            rtn = zmcaux.ZAux_Direct_SetInvertIn(cardHandle, cfg.Io.Pel, cfg.Io.InvPel ? 1 : 0);
+        //            CommandRtnCheck(rtn, nameof(zmcaux.ZAux_Direct_SetInvertIn));
+        //        }
 
-                if (cfg.Io.Nel > -1)
-                {
-                    rtn = zmcaux.ZAux_Direct_SetRevIn(cardHandle, cfg.Control.Index, cfg.Io.Nel);
-                    CommandRtnCheck(rtn, "ZAux_Direct_SetFwdIn in LoadParam Function");
+        //        if (cfg.Io.Nel > -1)
+        //        {
+        //            rtn = zmcaux.ZAux_Direct_SetRevIn(cardHandle, cfg.Control.Index, cfg.Io.Nel);
+        //            CommandRtnCheck(rtn, "ZAux_Direct_SetFwdIn in LoadParam Function");
 
-                    rtn = zmcaux.ZAux_Direct_SetInvertIn(cardHandle, cfg.Io.Nel, cfg.Io.InvNel ? 1 : 0);
-                    CommandRtnCheck(rtn, nameof(zmcaux.ZAux_Direct_SetInvertIn));
-                }
+        //            rtn = zmcaux.ZAux_Direct_SetInvertIn(cardHandle, cfg.Io.Nel, cfg.Io.InvNel ? 1 : 0);
+        //            CommandRtnCheck(rtn, nameof(zmcaux.ZAux_Direct_SetInvertIn));
+        //        }
 
-                if (cfg.Io.IsNelAsDatum)
-                {
-                    rtn = zmcaux.ZAux_Direct_SetDatumIn(cardHandle, cfg.Control.Index, cfg.Io.Nel);
-                    CommandRtnCheck(rtn, "ZAux_Direct_SetDatumIn in LoadParam Function");
-                }
-                else
-                {
-                    rtn = zmcaux.ZAux_Direct_SetDatumIn(cardHandle, cfg.Control.Index, cfg.Io.Pel);
-                    CommandRtnCheck(rtn, "ZAux_Direct_SetDatumIn in LoadParam Function");
-                }
-            }
-        }
+        //        if (cfg.Io.IsNelAsDatum)
+        //        {
+        //            rtn = zmcaux.ZAux_Direct_SetDatumIn(cardHandle, cfg.Control.Index, cfg.Io.Nel);
+        //            CommandRtnCheck(rtn, "ZAux_Direct_SetDatumIn in LoadParam Function");
+        //        }
+        //        else
+        //        {
+        //            rtn = zmcaux.ZAux_Direct_SetDatumIn(cardHandle, cfg.Control.Index, cfg.Io.Pel);
+        //            CommandRtnCheck(rtn, "ZAux_Direct_SetDatumIn in LoadParam Function");
+        //        }
+        //    }
+        //}
 
         private string SendBasicCommand(string command)
         {
