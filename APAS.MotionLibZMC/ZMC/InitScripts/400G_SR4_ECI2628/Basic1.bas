@@ -78,3 +78,14 @@ ENDSUB
 Sub EMER_TASK()
 	While True
 
+		If IN(20)=ON Then
+			RAPIDSTOP(2)
+			IsEMBPressed=1
+		ELSE
+			IsEMBPressed=0
+		End If
+		
+		DELAY(5)
+	WEND
+ENDSUB
+
