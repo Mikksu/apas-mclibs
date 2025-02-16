@@ -1,0 +1,80 @@
+
+main:
+
+	GLOBAL DIM IsEMBPressed
+	
+	DIM myModule, myId
+	
+	IsEMBPressed = 0
+	
+	PRINT CONTROL + SERIAL_NUMBER
+	
+	
+	'ECatADInit
+	AxisInit
+
+
+	RUNTASK 1, EMER_TASK
+
+End
+
+
+'初始化EtherCat总线AD采集模块
+SUB ECatADInit()
+
+	'连接ZMIO300——ADDA扩展模块
+	' SLOT_SCAN(0)
+	' ?RETURN
+	?"node num " NODE_COUNT(0)
+	' NODE_AIO(0,0)=32
+	?"node 0 start aio " NODE_AIO(0,0)
+	' SLOT_START(0)
+	' ?RETURN
+
+
+	'量程设置到0V-5V
+	'SDO_WRITE(0,0,$5001,1,6,6)
+
+ENDSUB
+
+
+'初始化脉冲轴
+SUB AxisInit()
+
+	' 旋转轴接在Axi0
+	' 原点信号：DI23
+
+	
+	INVERT_IN(23,ON)
+
+
+
+	'设置轴参数
+	BASE(0)
+	'FWD_IN=0,3,5,9,11,16,18,-1,-1		'正限位输入
+	DATUM_IN=23  				'零点位置输入
+	'REV_IN=1,2,4,10,12,17,19,-1,-1					'负限位输入
+			
+	ATYPE=4,4,4,1,1,1,1	,1,1				'轴类型
+	INVERT_STEP=3,1,1,1,1,1,1,1,1			'脉冲模式
+	UNITS=1,1,1,1,1,1,1,1,1
+	SRAMP=100,100,100,100,100,100,100,100,100
+	SPEED=200000,200000,200000,5000,5000,5000,5000,5000,5000
+	CREEP=2000,2000,2000,500,500,500,500,500,500
+	ACCEL=3000000,3000000,3000000,300000,300000,300000,300000,300000,300000
+	DECEL=3000000,3000000,3000000,300000,300000,300000,300000,300000,300000
+	FASTDEC=5000000,5000000,5000000,5000000,5000000,5000000,5000000,5000000,5000000
+
+
+   
+
+	' 对于伺服电机，调整编码器和规划位置的符号以及分频数
+	'ENCODER_RATIO(-1,1,2) AXIS(0)
+
+ENDSUB
+
+
+'急停开关检测任务
+Sub EMER_TASK()
+	While True
+
