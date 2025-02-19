@@ -288,8 +288,9 @@ namespace APAS.MotionLib.ACS
             var motionErr = _acs.GetMotionError(ax);
             if (motionErr != 0)
             {
-                var errStr = _acs.GetErrorString(motionErr);
-                alarms.Add(new AlarmInfo(motionErr, errStr));
+                //TODO _acs.GetErrorString内存溢出bug
+                // var errStr = _acs.GetErrorString(motionErr);
+                alarms.Add(new AlarmInfo(motionErr, $"Error Code: {motionErr}"));
             }
 
             return new StatusInfo(isBusy, isInp, isHomed, isServoOn, alarms.ToArray());
