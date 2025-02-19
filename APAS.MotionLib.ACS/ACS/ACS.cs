@@ -518,13 +518,14 @@ namespace APAS.MotionLib.ACS
         private void PreMove(int axis, bool isCheckServoOn = true)
         {
             // 检查轴是否正在运动
-            if (!GetIfIdle(axis, out var motorSta))
-                throw new Exception($"轴[{axis}]正在运动，状态0x{motorSta:X}");
-
+            //if (!GetIfIdle(axis, out var motorSta))
+            //    throw new Exception($"轴[{axis}]正在运动，状态0x{motorSta:X}");
+            var state = _acs.GetMotorState((AcsAxis)axis);
+            
             // 检查轴是否使能
             if (isCheckServoOn)
             {
-                if ((motorSta & MotorStates.ACSC_MST_ENABLE) == 0)
+                if ((state & MotorStates.ACSC_MST_ENABLE) == 0)
                 {
                     throw new Exception($"轴[{axis}]未使能。");
                 }
@@ -573,11 +574,11 @@ namespace APAS.MotionLib.ACS
                 case 5006:
                 case 5007:
                 case 5008:
-                    throw new StoppedByUserException($"运动终止，ErrCode {fault}");
+                    throw new StoppedByUserException($"运动终止，错误代码：{fault}");
             }
 
             if (fault != 0)
-                throw new Exception($"轴[{axis}]运行异常，{_acs.GetErrorString(fault)}。");
+                throw new Exception($"轴[{axis}]运行异常，错误代码：{fault}。");
         }
 
         private void CheckAxisStatus(int axis)
