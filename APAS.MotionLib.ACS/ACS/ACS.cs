@@ -555,7 +555,7 @@ namespace APAS.MotionLib.ACS
         {
             var fault = _acs.GetMotorError((AcsAxis)axis);
             if (fault != 0)
-                throw new Exception($"轴[{axis}]电机异常，{_acs.GetErrorString(fault)}。");
+                throw new Exception($"轴[{axis}]电机异常， 错误代码：{fault}。");
 
             fault = _acs.GetMotionError((AcsAxis)axis);
 
