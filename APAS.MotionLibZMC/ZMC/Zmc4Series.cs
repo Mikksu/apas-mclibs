@@ -521,11 +521,14 @@ namespace APAS.MotionLib.ZMC
         /// <returns>端口状态列表。True表示端口输出为有效电平。</returns>
         protected override bool[] ReadDIImpl()
         {
+            var startIndex = 0;
+            var endIndex = 23;
+            var totalIndex = endIndex - startIndex + 1;
             var outputStatus = new int[1];
-            var rtn = zmcaux.ZAux_Direct_GetInMulti(_hMc, 0, 15, outputStatus);
+            var rtn = zmcaux.ZAux_Direct_GetInMulti(_hMc, startIndex, endIndex, outputStatus);
             CommandRtnCheck(rtn, nameof(zmcaux.ZAux_Direct_GetInMulti));
-            var states = new bool[16];
-            for (var i = 0; i < 16; i++)
+            var states = new bool[totalIndex];
+            for (var i = 0; i < totalIndex; i++)
             {
                 states[i] = (outputStatus[0] & (1 << i)) != 0;
             }
