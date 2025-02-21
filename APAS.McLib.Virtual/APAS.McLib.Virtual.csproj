@@ -18,7 +18,7 @@
     <DebugSymbols>true</DebugSymbols>
     <DebugType>full</DebugType>
     <Optimize>false</Optimize>
-    <OutputPath>bin\Debug\</OutputPath>
+    <OutputPath>..\..\Release\Virtual\</OutputPath>
     <DefineConstants>DEBUG;TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
@@ -37,9 +37,6 @@
     </Reference>
     <Reference Include="APAS.McLib.Sdk">
       <HintPath>..\Dependencies\APAS.McLib.Sdk.dll</HintPath>
-    </Reference>
-    <Reference Include="log4net">
-      <HintPath>..\Dependencies\log4net.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Configuration" />
