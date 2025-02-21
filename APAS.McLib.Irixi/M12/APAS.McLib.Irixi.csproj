@@ -18,7 +18,7 @@
     <DebugSymbols>true</DebugSymbols>
     <DebugType>full</DebugType>
     <Optimize>false</Optimize>
-    <OutputPath>bin\Debug\</OutputPath>
+    <OutputPath>..\..\Release\M12\</OutputPath>
     <DefineConstants>DEBUG;TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
@@ -37,12 +37,6 @@
     </Reference>
     <Reference Include="APAS.McLib.Sdk">
       <HintPath>..\..\Dependencies\APAS.McLib.Sdk.dll</HintPath>
-    </Reference>
-    <Reference Include="log4net">
-      <HintPath>..\..\Dependencies\log4net.dll</HintPath>
-    </Reference>
-    <Reference Include="M12">
-      <HintPath>..\..\Dependencies\M12.dll</HintPath>
     </Reference>
     <Reference Include="M12, Version=1.0.17.28, Culture=neutral, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
