@@ -38,9 +38,8 @@
     <Reference Include="APAS.McLib.Sdk">
       <HintPath>..\..\Dependencies\APAS.McLib.Sdk.dll</HintPath>
     </Reference>
-    <Reference Include="M12, Version=1.0.17.28, Culture=neutral, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>.\M12.dll</HintPath>
+    <Reference Include="M12">
+      <HintPath>..\..\Dependencies\M12.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Configuration" />
