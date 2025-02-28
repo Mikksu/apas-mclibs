@@ -2,6 +2,7 @@
 using System.Diagnostics;
 using System.Linq;
 using System.Threading;
+using System.Threading.Tasks;
 using APAS.CoreLib.Charting;
 using APAS.McLib.Sdk;
 using Caliburn.Micro;
@@ -18,10 +19,7 @@ namespace APAS.McLib.Virtual
         private const int MAX_SIM_IO = 32;
         private const double MAX_AI_VALUE_MV = 2500;
 
-        /// <summary>
-        /// HOME模拟的最大持续时间，单位秒。
-        /// </summary>
-        private const int MAX_HOME_SIM_DURATION_S = 5;
+      
 
         private readonly Random _rndAIO = new Random();
         private readonly bool[] _buffDi = new bool[MAX_SIM_IO];
@@ -112,58 +110,11 @@ namespace APAS.McLib.Virtual
         /// <param name="creepSpeed">找到机械原点后返回零位的爬行速度。如不适用请忽略。</param>
         protected override void HomeImpl(int axis, double hiSpeed, double creepSpeed)
         {
-            double posBeforeHome = 0;
-            SimAxis ax = null;
-
-            ax = _simAxis[axis];
-            if (ax.IsBusy)
-                throw new Exception("The axis is busy");
-
-            ax.IsBusy = true;
-            ax.Cts = new CancellationTokenSource();
-            ax.IsHomed = false;
-            ax.IsHoming = true;
-            
-            var t = new Thread(()=> HomeSim(ax));
-            t.Name = $"[{PortName}.{axis}] Home Simulation Thread";
-            t.Start();
+            var ax = _simAxis[axis];
+            ax.StartHomeSim();
         }
 
-        private void HomeSim(SimAxis ax)
-        {
-            try
-            {
-                var posBeforeHome = ax.Position;
 
-                // 随机Home过程需要的时长
-                var r = new Random();
-                var duration = r.NextDouble() * MAX_HOME_SIM_DURATION_S * 60; // 最大5s完成Home
-
-                var sw = new Stopwatch();
-                sw.Start();
-                while (sw.Elapsed.TotalMilliseconds < duration)
-                {
-                    ax.Position = posBeforeHome - 10;
-
-                    Thread.Sleep(100);
-                    if (ax.Cts.Token.IsCancellationRequested)
-                        break;
-                }
-
-                ax.Position = 0;
-                ax.IsHomed = true;
-
-            }
-            catch
-            {
-                // ignored
-            }
-            finally
-            {
-                ax.IsHoming = false;
-                ax.IsBusy = false;
-            }
-        }
 
         protected override bool PollHomeDoneImpl(int axis)
         {
@@ -180,49 +131,7 @@ namespace APAS.McLib.Virtual
         protected override void MoveImpl(int axis, double speed, double distance)
         {
             var ax = _simAxis[axis];
-            if (ax.IsBusy)
-                throw new Exception("axis is busy.");
-
-            ax.IsBusy = true;
-            ax.Cts = new CancellationTokenSource();
-
-            var t = new Thread(() => MoveSim(ax, speed, distance));
-            t.Name = $"[{PortName}.{axis}] Move Simulation Thread";
-            t.Start();
-
-        }
-
-        private void MoveSim(SimAxis ax, double speed, double distance)
-        {
-            try
-            {
-                
-                var step = Math.Abs(speed / 10) * Math.Sign(distance);
-                var distMoved = 0.0;
-
-                while (true)
-                {
-                    if (Math.Abs(distance - distMoved) > Math.Abs(step))
-                    {
-                        ax.Position += step;
-                        distMoved += step;
-                    }
-                    else
-                    {
-                        ax.Position += distance - distMoved;
-                        break;
-                    }
-
-                    if (ax.Cts.Token.IsCancellationRequested)
-                        break;
-
-                    Thread.Sleep(10);
-                }
-            }
-            finally
-            {
-                ax.IsBusy = false;
-            }
+            ax.StartMoveSim(speed, distance);
         }
 
         protected override bool PollMotionDoneImpl(int axis)
@@ -476,12 +385,12 @@ namespace APAS.McLib.Virtual
         /// </summary>
         protected override void StopImpl()
         {
-            _simAxis.ToList().ForEach(x => x.Cts?.Cancel());
+            _simAxis.ToList().ForEach(x => x.Stop());
         }
 
         protected override void StopImpl(int axis)
         {
-            _simAxis[axis].Cts?.Cancel();
+            _simAxis[axis].Stop();
         }
 
         /// <summary>
