@@ -62,13 +62,11 @@ namespace APAS.McLib.Virtual
                     _tmrPosSim.Dispose();
                     _homeSimSw.Stop();
 
-
+                    _cts.Dispose();
                     IsHomed = false;
                     IsBusy = false;
-                    _cts.Dispose();
                 }
-
-                if (_homeSimSw.Elapsed.TotalMilliseconds >= _homeSimDuration)
+                else if (_homeSimSw.Elapsed.TotalMilliseconds >= _homeSimDuration)
                 {
                     // 结束
                     _tmrPosSim.Change(0, Timeout.Infinite);
@@ -78,7 +76,10 @@ namespace APAS.McLib.Virtual
                     IsHomed = true;
                     IsBusy = false;
                     Position = 0;
-                    _cts.Dispose();
+                }
+                else
+                {
+                    // Ignored
                 }
             }
         }
@@ -95,8 +96,9 @@ namespace APAS.McLib.Virtual
                     _tmrPosSim.Change(0, Timeout.Infinite);
                     _tmrPosSim.Dispose();
 
-                    IsBusy = false;
                     _cts.Dispose();
+                    IsBusy = false;
+                    return;
                 }
 
                 var step = (double)state;
@@ -113,8 +115,8 @@ namespace APAS.McLib.Virtual
                     _tmrPosSim.Change(0, Timeout.Infinite);
                     _tmrPosSim.Dispose();
 
-                    IsBusy = false;
                     _cts.Dispose();
+                    IsBusy = false;
                 }
             }
         }
