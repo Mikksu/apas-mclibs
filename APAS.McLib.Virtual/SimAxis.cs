@@ -11,7 +11,7 @@ namespace APAS.McLib.Virtual
         /// <summary>
         /// HOME模拟的最大持续时间，单位秒。
         /// </summary>
-        private const int MAX_HOME_SIM_DURATION_S = 10;
+        private const int MAX_HOME_SIM_DURATION_S = 5;
 
         private Timer _tmrPosSim;
         private readonly object _syncRoot = new();
@@ -47,39 +47,54 @@ namespace APAS.McLib.Virtual
 
         #endregion
 
+        private void PreSim()
+        {
+            IsBusy = true;
+            _cts = new CancellationTokenSource();
+        }
+
+        private void PostSim()
+        {
+            if (_tmrPosSim != null)
+            {
+                _tmrPosSim.Change(0, Timeout.Infinite);
+                _tmrPosSim.Dispose();
+                _tmrPosSim = null;
+
+                _cts?.Dispose();
+                _cts = null;
+
+                IsBusy = false;
+            }
+        }
+
         private void OnTimerHome(object state)
         {
             Debug.Assert(state is double);
 
             lock (_syncRoot)
             {
-                Position += (double)state;
-
-                if (_cts.Token.IsCancellationRequested)
+                if (_cts == null || _cts.Token.IsCancellationRequested)
                 {
                     // 取消
-                    _tmrPosSim.Change(0, Timeout.Infinite);
-                    _tmrPosSim.Dispose();
-                    _homeSimSw.Stop();
+                    PostSim();
 
-                    _cts.Dispose();
+                    _homeSimSw.Stop();
                     IsHomed = false;
-                    IsBusy = false;
                 }
                 else if (_homeSimSw.Elapsed.TotalMilliseconds >= _homeSimDuration)
                 {
                     // 结束
-                    _tmrPosSim.Change(0, Timeout.Infinite);
-                    _tmrPosSim.Dispose();
+                    PostSim();
+
                     _homeSimSw.Stop();
 
                     IsHomed = true;
-                    IsBusy = false;
                     Position = 0;
                 }
                 else
                 {
-                    // Ignored
+                    Position += (double)state;
                 }
             }
         }
@@ -90,14 +105,11 @@ namespace APAS.McLib.Virtual
 
             lock (_syncRoot)
             {
-                if (_cts.Token.IsCancellationRequested)
+                if (_cts == null || _cts.Token.IsCancellationRequested)
                 {
                     // 取消
-                    _tmrPosSim.Change(0, Timeout.Infinite);
-                    _tmrPosSim.Dispose();
-
-                    _cts.Dispose();
-                    IsBusy = false;
+                    PostSim();
+                   
                     return;
                 }
 
@@ -112,11 +124,7 @@ namespace APAS.McLib.Virtual
                     Position += _distanceToMove - _distanceMoved;
 
                     // 结束
-                    _tmrPosSim.Change(0, Timeout.Infinite);
-                    _tmrPosSim.Dispose();
-
-                    _cts.Dispose();
-                    IsBusy = false;
+                    PostSim();
                 }
             }
         }
@@ -130,6 +138,9 @@ namespace APAS.McLib.Virtual
 
                 try
                 {
+                    PreSim();
+                    IsHoming = false;
+
                     // 随机Home过程需要的时长
                     var r = new Random();
                     _homeSimDuration = r.NextDouble() * MAX_HOME_SIM_DURATION_S * 1000; // 最大5s完成Home
@@ -141,13 +152,8 @@ namespace APAS.McLib.Virtual
                 }
                 catch
                 {
-                    // ignored
-                }
-                finally
-                {
-                    _cts = new();
-                    IsHoming = false;
-                    IsBusy = true;
+                    IsHomed = false;
+                    PostSim();
                 }
             }
         }
@@ -161,6 +167,8 @@ namespace APAS.McLib.Virtual
 
                 try
                 {
+                    PreSim();
+
                     var step = Math.Abs(speed / 10) * Math.Sign(distance);
                     _distanceMoved = 0.0;
                     _distanceToMove = distance;
@@ -168,10 +176,9 @@ namespace APAS.McLib.Virtual
                     // 启动位置模拟定时器
                     _tmrPosSim = new Timer(OnTimerMove, step, 0, 10);
                 }
-                finally
+                catch
                 {
-                    _cts = new CancellationTokenSource();
-                    IsBusy = true;
+                    PostSim();
                 }
             }
         }
@@ -180,6 +187,7 @@ namespace APAS.McLib.Virtual
         {
             lock (_syncRoot)
             {
+                _tmrPosSim.Change(0, Timeout.Infinite);
                 _cts?.Cancel();
             }
         }
