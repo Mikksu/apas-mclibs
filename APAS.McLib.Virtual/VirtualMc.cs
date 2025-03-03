@@ -437,7 +437,7 @@ namespace APAS.McLib.Virtual
                 }
                 lastSinTick = (double)DateTime.Now.TimeOfDay.TotalMilliseconds;
 
-                Thread.Sleep(100);
+                Thread.Sleep(5);
 
                 if (_ctsIOSimTask.Token.IsCancellationRequested)
                     break;
