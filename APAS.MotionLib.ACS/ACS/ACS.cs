@@ -12,6 +12,7 @@ using APAS.McLib.Sdk.Core;
 using Caliburn.Micro;
 using AcsApi = ACS.SPiiPlusNET.Api;
 using AcsAxis = ACS.SPiiPlusNET.Axis;
+using System.Web.UI;
 
 /*
  注意：
@@ -175,22 +176,22 @@ namespace APAS.MotionLib.ACS
             // 如果轮询到程序执行完成，检查完成结果
             if (!isHoming)
             {
-                    // 确保程序执行完成
-                    _acs.WaitProgramEnd(homeProgBuf, -1);
-                    var isProgErr = _acs.GetProgramError(homeProgBuf);
-                    if (isProgErr == 0)
-                    {
-                        // Home完成后可能会报 ACSC_SAFETY_PE错误，需要清除；否则Move函数在最后阶段检查Fault时会报错。
-                        _acs.FaultClear((AcsAxis)axis);
-                    }
+                // 确保程序执行完成
+                _acs.WaitProgramEnd(homeProgBuf, -1);
+                var isProgErr = _acs.GetProgramError(homeProgBuf);
+                if (isProgErr == 0)
+                {
+                    // Home完成后可能会报 ACSC_SAFETY_PE错误，需要清除；否则Move函数在最后阶段检查Fault时会报错。
+                    _acs.FaultClear((AcsAxis)axis);
+                }
 
-                    // 等待轴停止移动
-                    var isIdle = GetIfIdle(axis, out _);
-                    if (!isIdle)
-                        isHoming = true;
+                // 等待轴停止移动
+                var isIdle = GetIfIdle(axis, out _);
+                if (!isIdle)
+                    isHoming = true;
             }
 
-            if(!isHoming)
+            if (!isHoming)
                 _acs.WaitMotionEnd((AcsAxis)axis, 5000);
 
             return !isHoming;
@@ -521,7 +522,7 @@ namespace APAS.MotionLib.ACS
             //if (!GetIfIdle(axis, out var motorSta))
             //    throw new Exception($"轴[{axis}]正在运动，状态0x{motorSta:X}");
             var state = _acs.GetMotorState((AcsAxis)axis);
-            
+
             // 检查轴是否使能
             if (isCheckServoOn)
             {
@@ -546,9 +547,9 @@ namespace APAS.MotionLib.ACS
         private bool GetIfIdle(int axis, out MotorStates states)
         {
             states = _acs.GetMotorState((AcsAxis)axis);
-            return (states & MotorStates.ACSC_MST_MOVE) == 0 
-                && (states & MotorStates.ACSC_MST_ACC) == 0
-                && (states & MotorStates.ACSC_MST_INPOS) == MotorStates.ACSC_MST_INPOS;
+            return (states & MotorStates.ACSC_MST_MOVE) == 0
+                   && (states & MotorStates.ACSC_MST_ACC) == 0
+                   && (states & MotorStates.ACSC_MST_INPOS) == MotorStates.ACSC_MST_INPOS;
         }
 
         private void GetAxisError(int axis)
@@ -627,6 +628,61 @@ namespace APAS.MotionLib.ACS
 
         #region Unit Test Proxy
 
+#if ALLOW_UNIT_TEST
+
+        public void AreaScanZigZag(int axis0, int axis1, double range, double gap, int rows)
+        {
+            Debug.Assert(axis0 != axis1);
+
+            var timeout = 5000;
+
+            Init();
+            ServoOn(axis0);
+            ServoOn(axis1);
+
+            AcsAxis[] axes = [(AcsAxis)axis0, (AcsAxis)axis1, AcsAxis.ACSC_NONE];
+            var points = new double[2];
+
+            _acs.EnableM(axes); // 启用轴 0 和 1
+            _acs.WaitMotorEnabled((AcsAxis)axis0, 1, timeout);
+            _acs.WaitMotorEnabled((AcsAxis)axis1, 1, timeout);
+
+            // 开始多点运动
+            _acs.MultiPointM(MotionFlags.ACSC_NONE, axes, 0);
+
+            double startX = 0, startY = 0;
+            double currentX = startX, currentY = startY;
+
+            // 生成蛇形轨迹
+            for (int row = 0; row < rows; row++)
+            {
+                if (row % 2 == 0)
+                    currentX = startX + range;  // 偶数行正向运动
+                else
+                    currentX = startX;          // 奇数行反向运动
+
+                // 添加行终点
+                points[0] = currentX;
+                points[1] = currentY;
+                _acs.AddPointM(axes, points);
+
+                // 非最后一行，执行换行
+                if (row < rows - 1)
+                {
+                    currentY += gap;  // 移动到下一行
+                    points[0] = currentX;  // 保持 X 轴位置
+                    points[1] = currentY;
+                    _acs.AddPointM(axes, points);
+                }
+            }
+
+            // 结束运动序列
+            _acs.EndSequenceM(axes);
+
+            _acs.WaitMotionEnd((AcsAxis)axis0, timeout);
+            _acs.WaitMotionEnd((AcsAxis)axis1, timeout);
+        }
+
         public void UnitTestFast1D()
         {
             Init();
@@ -696,6 +752,7 @@ namespace APAS.MotionLib.ACS
                 Debug.WriteLine($"POS {ReadPos(axis)}", "MOVE");
             }
         }
+#endif
 
         #endregion
     }

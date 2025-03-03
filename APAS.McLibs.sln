@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
-VisualStudioVersion = 17.12.35707.178 d17.12
+VisualStudioVersion = 17.12.35707.178
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "APAS.MotionLib.ZMC", "APAS.MotionLibZMC\ZMC\APAS.MotionLib.ZMC.csproj", "{2E715D2B-8081-4D89-88BE-1FD572E1577B}"
 EndProject
@@ -17,11 +17,15 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "APAS.MotionLib.ACS", "APAS.
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "APAS.MotionLib.ZMC.ConfigurationEditor", "APAS.MotionLib.ZMC.ConfigurationEditor\APAS.MotionLib.ZMC.ConfigurationEditor.csproj", "{EC5DD133-CB18-43F2-8FBF-2CA25C530B2F}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "APAS.MotionLib.ZMCTests1", "APAS.MotionLibZMC\APAS.MotionLib.ZMCTests1\APAS.MotionLib.ZMCTests1.csproj", "{C0D4D769-20E1-4854-B256-CCD88AD69722}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "APAS.MotionLib.ZMCTests", "APAS.MotionLibZMC\APAS.MotionLib.ZMCTests1\APAS.MotionLib.ZMCTests.csproj", "{C0D4D769-20E1-4854-B256-CCD88AD69722}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "BuildTools", "BuildTools", "{EB43788E-14AF-46D9-99B0-B17830C90566}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PrepareRelease", "PrepareRelease\PrepareRelease.csproj", "{562E405D-5CA7-4EA9-9010-7A064082808D}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "UnitTests", "UnitTests", "{02EA681E-C7D8-13C7-8484-4AC65E1B71E8}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "APAS.MotionLib.ACSTests", "APAS.MotionLib.ACS\APAS.MotionLib.ACSTests2\APAS.MotionLib.ACSTests.csproj", "{9CE02678-11F9-40D8-8D17-B50E1F42DEDC}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -64,12 +68,18 @@ Global
 		{562E405D-5CA7-4EA9-9010-7A064082808D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{562E405D-5CA7-4EA9-9010-7A064082808D}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{562E405D-5CA7-4EA9-9010-7A064082808D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{9CE02678-11F9-40D8-8D17-B50E1F42DEDC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9CE02678-11F9-40D8-8D17-B50E1F42DEDC}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9CE02678-11F9-40D8-8D17-B50E1F42DEDC}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9CE02678-11F9-40D8-8D17-B50E1F42DEDC}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
+		{C0D4D769-20E1-4854-B256-CCD88AD69722} = {02EA681E-C7D8-13C7-8484-4AC65E1B71E8}
 		{562E405D-5CA7-4EA9-9010-7A064082808D} = {EB43788E-14AF-46D9-99B0-B17830C90566}
+		{9CE02678-11F9-40D8-8D17-B50E1F42DEDC} = {02EA681E-C7D8-13C7-8484-4AC65E1B71E8}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {517997EC-3437-4440-920E-FE0F0C168B59}
