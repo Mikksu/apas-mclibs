@@ -187,7 +187,7 @@ namespace APAS.McLib.Virtual
         {
             lock (_syncRoot)
             {
-                _tmrPosSim.Change(0, Timeout.Infinite);
+                _tmrPosSim?.Change(0, Timeout.Infinite);
                 _cts?.Cancel();
             }
         }
